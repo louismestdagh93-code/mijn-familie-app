@@ -11,8 +11,6 @@ FAMILIES = {"jansen": "jansen2026", "pietersen": "pietersen2026", "test": "test"
 
 if 'ingelogd_familie' not in st.session_state:
     st.session_state.ingelogd_familie = None
-if 'audio_sync' not in st.session_state:
-    st.session_state.audio_sync = None
 
 # --- 2. LOGIN ---
 if st.session_state.ingelogd_familie is None:
@@ -51,20 +49,8 @@ txt = "#FFFFFF" if is_nacht else "#2E7D32"
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
-    h1 {{ color: {txt}; text-align: center; font-family: sans-serif; margin-bottom: 30px; }}
+    h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
-    
-    /* Maak de standaard Streamlit button onzichtbaar maar dekkend over de foto */
-    .stButton button {{
-        position: absolute;
-        width: 100%;
-        height: 250px;
-        z-index: 10;
-        background: transparent !important;
-        border: none !important;
-        color: transparent !important;
-    }}
-    .stButton button:hover {{ color: transparent !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -81,7 +67,7 @@ with st.sidebar:
     t = st.text_input("Naam")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
-    if st.button("Opslaan in Album"):
+    if st.button("Toevoegen/Bijwerken"):
         if t:
             index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
             item = album_data[index] if index is not None else {"titel": t, "foto": "", "audio": ""}
@@ -96,43 +82,52 @@ with st.sidebar:
             json.dump(album_data, open(DB_FILE, "w"))
             st.rerun()
     
-    if st.button("🗑️ Verwijder deze naam"):
+    if st.button("Verwijder naam"):
         album_data = [i for i in album_data if i["titel"].lower() != t.lower()]
         json.dump(album_data, open(DB_FILE, "w"))
         st.rerun()
 
 # --- 7. HET SCHERM ---
 if is_nacht:
-    st.markdown("<div style='padding-top:100px; text-align:center;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p style='color:gray;'>Slaap lekker!</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
 else:
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
-    
     cols = st.columns(3)
+    
     for i, item in enumerate(album_data):
-        if item.get('foto') and os.path.exists(item['foto']):
+        if item.get('foto') and os.path.exists(item['foto']) and item.get('audio') and os.path.exists(item['audio']):
             with cols[i % 3]:
-                # 1. De foto kaart (Visueel)
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                st.markdown(f"""
-                <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; position: relative;">
-                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:200px; object-fit:cover; display:block;">
+                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                
+                # HTML Kaart met DIRECTE audio-aansturing
+                st.components.v1.html(f"""
+                <div onclick="playExclusive()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
+                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
                     <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
+                    <audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio>
                 </div>
-                """, unsafe_allow_html=True)
-
-                # 2. De onzichtbare klik-laag over de foto
-                if st.button("Klik", key=f"photo_{i}"):
-                    if item.get('audio') and os.path.exists(item['audio']):
-                        aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-                        st.session_state.audio_sync = aud_b64
-                        st.rerun()
-
-    # 3. De centrale speler (speelt af en stopt automatisch de vorige bij rerun)
-    if st.session_state.audio_sync:
-        st.components.v1.html(f"""
-            <audio autoplay><source src="data:audio/mp3;base64,{st.session_state.audio_sync}" type="audio/mp3"></audio>
-        """, height=0)
-        st.session_state.audio_sync = None # Klaarzetten voor de volgende klik
+                <script>
+                    function playExclusive() {{
+                        // Zoek naar ALLE audio elementen in ALLE iframes van de familie
+                        const allAudios = window.parent.document.querySelectorAll('audio');
+                        const myAudios = document.querySelectorAll('audio');
+                        
+                        // Stop alles
+                        allAudios.forEach(a => {{ a.pause(); a.currentTime = 0; }});
+                        window.parent.postMessage('stopAll', '*'); // Signaal naar andere kaarten
+                        
+                        // Speel deze
+                        document.getElementById('aud_{i}').play();
+                    }}
+                    
+                    // Luister naar stop-signalen van andere kaarten
+                    window.addEventListener('message', function(e) {{
+                        document.getElementById('aud_{i}').pause();
+                        document.getElementById('aud_{i}').currentTime = 0;
+                    }});
+                </script>
+                """, height=250)
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
