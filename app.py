@@ -35,36 +35,41 @@ if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
 else: album_data = []
 
-# --- 4. STYLING (GROTE KLIQUBARE BALKEN) ---
+# --- 4. STYLING (OM DE FOTO EN KNOP TE BINDEN) ---
 st.markdown("""
     <style>
     .stApp { background-color: #FDFCF0; }
     
-    /* Foto styling */
+    /* Zorg dat alles dicht op elkaar staat */
+    [data-testid="column"] {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    /* Foto styling: Iets kleiner voor betere fit */
     [data-testid="stImage"] img {
-        border-radius: 20px 20px 0 0;
-        border: 4px solid #2E7D32;
-        border-bottom: none;
-        max-height: 250px;
+        border-radius: 20px 20px 0 0 !important;
+        border: 4px solid #2E7D32 !important;
+        max-height: 200px !important;
+        width: 100% !important;
         object-fit: cover;
     }
 
-    /* De knop direct onder de foto */
+    /* De knop: Plakt direct onder de foto */
     .stButton button {
         width: 100% !important;
         background-color: #2E7D32 !important;
         color: white !important;
-        font-size: 24px !important;
-        font-weight: bold !important;
+        font-size: 22px !important;
+        height: 60px !important;
         border-radius: 0 0 20px 20px !important;
-        height: 70px !important;
         border: none !important;
-        margin-top: -10px;
+        margin-top: -5px !important; /* Trek de knop tegen de foto aan */
     }
     
-    .stButton button:active {
-        background-color: #1B5E20 !important;
-    }
+    h1 { color: #2E7D32; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -89,15 +94,17 @@ with st.sidebar:
 # --- 6. HET ALBUM ---
 st.markdown(f"<h1>Familie {familie_naam.capitalize()}</h1>", unsafe_allow_html=True)
 
-cols = st.columns(2)
+# Gebruik 3 kolommen voor kleinere foto's die naast elkaar passen
+cols = st.columns(3) 
 for i, item in enumerate(album_data):
-    with cols[i % 2]:
+    with cols[i % 3]:
         # Toon de foto
-        st.image(item['foto'], use_container_width=True)
+        st.image(item['foto'])
         
         # De knop met de naam die het geluid start
         if st.button(f"Hoor {item['titel']}", key=f"btn_{i}"):
             with open(item['audio'], "rb") as f:
                 audio_bytes = f.read()
+                # Gebruik de standaard audio player met autoplay
                 st.audio(audio_bytes, format="audio/mp3", autoplay=True)
             st.balloons()
