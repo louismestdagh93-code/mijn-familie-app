@@ -31,13 +31,23 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 CFG_FILE = os.path.join(pad, "config.json")
 
+# Veilig laden van data
 album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
-config = json.load(open(CFG_FILE)) if os.path.exists(CFG_FILE) else {"n_start": 21, "n_eind": 7}
+
+# VEILIGHEIDSCHECK: Als de key niet bestaat, gebruik standaardwaarden
+if os.path.exists(CFG_FILE):
+    try:
+        config = json.load(open(CFG_FILE))
+        if "n_start" not in config: config = {"n_start": 21, "n_eind": 7}
+    except:
+        config = {"n_start": 21, "n_eind": 7}
+else:
+    config = {"n_start": 21, "n_eind": 7}
 
 # --- 4. NACHT CHECK ---
 def check_nacht():
     nu = (datetime.utcnow() + timedelta(hours=1)).hour
-    s, e = config["n_start"], config["n_eind"]
+    s, e = config.get("n_start", 21), config.get("n_eind", 7)
     return (nu >= s or nu < e) if s > e else (s <= nu < e)
 
 nacht = check_nacht()
@@ -57,8 +67,8 @@ st.markdown(f"""
 # --- 6. BEHEER (Zijbalk) ---
 with st.sidebar:
     st.header("⚙️ Instellingen")
-    config["n_start"] = st.slider("Start nacht", 0, 23, config["n_start"])
-    config["n_eind"] = st.slider("Einde nacht", 0, 23, config["n_eind"])
+    config["n_start"] = st.slider("Start nacht", 0, 23, config.get("n_start", 21))
+    config["n_eind"] = st.slider("Einde nacht", 0, 23, config.get("n_eind", 7))
     if st.button("Opslaan"):
         json.dump(config, open(CFG_FILE, "w"))
         st.rerun()
