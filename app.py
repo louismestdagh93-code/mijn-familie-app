@@ -91,7 +91,6 @@ with st.sidebar:
             if index is not None: album_data[index] = item
             else: album_data.append(item)
             with open(DB_FILE, "w") as m: json.dump(album_data, m)
-            st.success(f"{t} opgeslagen!")
             st.rerun()
 
     st.divider()
@@ -100,20 +99,9 @@ with st.sidebar:
         namen = [item["titel"] for item in album_data]
         te_verwijderen = st.selectbox("Kies wie je wilt verwijderen", namen)
         if st.button(f"Verwijder {te_verwijderen}"):
-            # Verwijder bestanden fysiek (optioneel, maar netter)
-            item = next(i for i in album_data if i["titel"] == te_verwijderen)
-            try:
-                if os.path.exists(item["foto"]): os.remove(item["foto"])
-                if os.path.exists(item["audio"]): os.remove(item["audio"])
-            except: pass
-            
-            # Update lijst
             album_data = [i for i in album_data if i["titel"] != te_verwijderen]
             with open(DB_FILE, "w") as m: json.dump(album_data, m)
-            st.warning(f"{te_verwijderen} is verwijderd.")
             st.rerun()
-    else:
-        st.write("Geen personen in album.")
 
 # --- 7. HET SCHERM ---
 if is_nacht:
@@ -123,10 +111,13 @@ else:
     cols = st.columns(3)
     
     for i, item in enumerate(album_data):
-        if item.get('foto') and item.get('audio') and os.path.exists(item['foto']):
+        # Controleer of de bestanden ECHT bestaan voordat we ze proberen te openen
+        if item.get('foto') and os.path.exists(item['foto']) and item.get('audio') and os.path.exists(item['audio']):
             with cols[i % 3]:
-                img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                with open(item['foto'], "rb") as img_f:
+                    img_b64 = base64.b64encode(img_f.read()).decode()
+                with open(item['audio'], "rb") as aud_f:
+                    aud_b64 = base64.b64encode(aud_f.read()).decode()
                 
                 st.components.v1.html(f"""
                 <div id="card_{i}" onclick="playAudio()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
@@ -136,15 +127,15 @@ else:
                 </div>
                 <script>
                     function playAudio() {{
-                        // Stop alle andere audio fragmenten op de pagina
                         var allAudios = window.parent.document.querySelectorAll('audio');
                         allAudios.forEach(function(a) {{ a.pause(); a.currentTime = 0; }});
-                        // Speel dit fragment
-                        var current = document.getElementById('aud_{i}');
-                        current.play();
+                        document.getElementById('aud_{i}').play();
                     }}
                 </script>
                 """, height=250)
+        else:
+            # Als bestanden missen, toon een bericht in de beheer-omgeving of negeer in het hoofdscherm
+            pass
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
