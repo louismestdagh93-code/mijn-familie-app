@@ -4,14 +4,10 @@ import json
 import base64
 from datetime import datetime, timedelta
 
-# --- 1. CONFIGURATIE ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
-FAMILIES = {
-    "jansen": "jansen2026",
-    "pietersen": "pietersen2026",
-    "test": "test"
-}
+FAMILIES = {"jansen": "jansen2026", "pietersen": "pietersen2026", "test": "test"}
 
 if 'ingelogd_familie' not in st.session_state:
     st.session_state.ingelogd_familie = None
@@ -21,71 +17,75 @@ if st.session_state.ingelogd_familie is None:
     st.markdown("<h1 style='text-align: center;'>❤️ Welkom</h1>", unsafe_allow_html=True)
     pwd = st.text_input("Wachtwoord", type="password")
     if st.button("Open Album"):
-        for familie, wachtwoord in FAMILIES.items():
-            if pwd == wachtwoord:
-                st.session_state.ingelogd_familie = familie
+        for fam, ww in FAMILIES.items():
+            if pwd == ww:
+                st.session_state.ingelogd_familie = fam
                 st.rerun()
     st.stop()
 
-# --- 3. DATA & INSTELLINGEN ---
-familie_naam = st.session_state.ingelogd_familie
-data_pad = f"data_{familie_naam}"
-if not os.path.exists(data_pad): os.makedirs(data_pad)
+# --- 3. DATA SETUP ---
+fam = st.session_state.ingelogd_familie
+pad = f"data_{fam}"
+if not os.path.exists(pad): os.makedirs(pad)
 
-DB_FILE = os.path.join(data_pad, "database.json")
-CONFIG_FILE = os.path.join(data_pad, "config.json")
+DB_FILE = os.path.join(pad, "database.json")
+CFG_FILE = os.path.join(pad, "config.json")
 
-if os.path.exists(DB_FILE):
-    with open(DB_FILE, "r") as f: album_data = json.load(f)
-else: album_data = []
+album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
+config = json.load(open(CFG_FILE)) if os.path.exists(CFG_FILE) else {"n_start": 21, "n_eind": 7}
 
-if os.path.exists(CONFIG_FILE):
-    with open(CONFIG_FILE, "r") as f: config = json.load(f)
-else:
-    config = {"nacht_start": 21, "nacht_eind": 7}
-
-# --- 4. NACHT-CHECK ---
+# --- 4. NACHT CHECK ---
 def check_nacht():
-    # Tijdcorrectie voor België (UTC+1)
     nu = (datetime.utcnow() + timedelta(hours=1)).hour
-    start = config["nacht_start"]
-    eind = config["nacht_eind"]
-    if start > eind: return nu >= start or nu < eind
-    else: return start <= nu < eind
+    s, e = config["n_start"], config["n_eind"]
+    return (nu >= s or nu < e) if s > e else (s <= nu < e)
 
-is_nacht_actief = check_nacht()
+nacht = check_nacht()
 
 # --- 5. STYLING ---
-bg_color = "#0A0E14" if is_nacht_actief else "#FDFCF0"
-text_color = "#FFFFFF" if is_nacht_actief else "#2E7D32"
+bg = "#0A0E14" if nacht else "#FDFCF0"
+txt = "#FFFFFF" if nacht else "#2E7D32"
 
 st.markdown(f"""
 <style>
-    .stApp {{ background-color: {bg_color}; }}
-    .stButton button {{
-        width: 100% !important;
-        background-color: #2E7D32 !important;
-        color: white !important;
-        height: 60px !important;
-        border-radius: 0 0 20px 20px !important;
-        border: none !important;
-    }}
-    [data-testid="stImage"] img {{
-        border-radius: 20px 20px 0 0 !important;
-        border: 4px solid #2E7D32 !important;
-        height: 180px !important;
-        object-fit: cover;
-    }}
+    .stApp {{ background-color: {bg}; }}
+    .stButton button {{ width: 100%; background-color: #2E7D32; color: white; height: 60px; border-radius: 0 0 20px 20px; border: none; }}
+    [data-testid="stImage"] img {{ border-radius: 20px 20px 0 0; border: 4px solid #2E7D32; height: 180px; object-fit: cover; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 6. SCHERM-CONTROLS ---
-if not is_nacht_actief:
-    if st.button("Zet op volledig scherm"):
-        st.components.v1.html("<script>var elem = window.parent.document.documentElement; if (elem.requestFullscreen) { elem.requestFullscreen(); }</script>", height=0)
-
-# --- 7. BEHEER (Zijbalk) ---
+# --- 6. BEHEER (Zijbalk) ---
 with st.sidebar:
     st.header("⚙️ Instellingen")
-    config["nacht_start"] = st.slider("Start nacht", 0, 23, config["nacht_start"])
-    config["nacht
+    config["n_start"] = st.slider("Start nacht", 0, 23, config["n_start"])
+    config["n_eind"] = st.slider("Einde nacht", 0, 23, config["n_eind"])
+    if st.button("Opslaan"):
+        json.dump(config, open(CFG_FILE, "w"))
+        st.rerun()
+    st.divider()
+    t = st.text_input("Naam")
+    f = st.file_uploader("Foto")
+    a = st.file_uploader("Audio")
+    if st.button("Toevoegen"):
+        if f and a and t:
+            fp, ap = os.path.join(pad, f.name), os.path.join(pad, a.name)
+            with open(fp, "wb") as m: m.write(f.getbuffer())
+            with open(ap, "wb") as m: m.write(a.getbuffer())
+            album_data.append({"titel": t, "foto": fp, "audio": ap})
+            json.dump(album_data, open(DB_FILE, "w"))
+            st.rerun()
+
+# --- 7. HET SCHERM ---
+if nacht:
+    st.markdown("<div style='text-align:center; padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2 style='color:white;'>Het is nacht.</h2><p style='color:gray;'>Slaap lekker!</p></div>", unsafe_allow_html=True)
+else:
+    if st.button("Volledig scherm"):
+        st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
+    st.markdown(f"<h1 style='text-align:center; color:#2E7D32;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+    cols = st.columns(3)
+    for i, item in enumerate(album_data):
+        with cols[i % 3]:
+            st.image(item['foto'])
+            if st.button(f"Hoor {item['titel']}", key=f"b{i}"):
+                b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                st.components.v1.html(f"<audio autoplay><source src='data:audio/mp3;base64,{b64}'></audio>", height=0)
