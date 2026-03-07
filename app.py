@@ -35,55 +35,40 @@ if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
 else: album_data = []
 
-# --- 4. STYLING (HET GEHEIM VAN DE KLIKBARE FOTO) ---
+# --- 4. STYLING (GROTE KLIQUBARE BALKEN) ---
 st.markdown("""
     <style>
     .stApp { background-color: #FDFCF0; }
     
-    /* Container voor de foto en de knop */
-    .foto-box {
-        position: relative;
-        width: 100%;
-        max-width: 300px; /* Forceer een maximale breedte */
-        margin: 0 auto;
-        text-align: center;
-    }
-
-    /* De foto zelf */
-    .foto-box img {
-        width: 100%;
-        height: 250px;
-        object-fit: cover;
-        border-radius: 20px;
+    /* Foto styling */
+    [data-testid="stImage"] img {
+        border-radius: 20px 20px 0 0;
         border: 4px solid #2E7D32;
+        border-bottom: none;
+        max-height: 250px;
+        object-fit: cover;
     }
 
-    /* De knop die ALLES overdekt */
+    /* De knop direct onder de foto */
     .stButton button {
-        position: absolute;
-        top: 0;
-        left: 0;
         width: 100% !important;
-        height: 250px !important;
-        background-color: transparent !important;
-        color: transparent !important;
+        background-color: #2E7D32 !important;
+        color: white !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        border-radius: 0 0 20px 20px !important;
+        height: 70px !important;
         border: none !important;
-        z-index: 10;
-        cursor: pointer;
+        margin-top: -10px;
     }
     
-    /* De naam onder de foto */
-    .naam-label {
-        font-size: 22px;
-        font-weight: bold;
-        color: #2E7D32;
-        margin-top: 10px;
-        margin-bottom: 30px;
+    .stButton button:active {
+        background-color: #1B5E20 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 5. BEHEER (Zijbalk) ---
+# --- 5. BEHEER ---
 with st.sidebar:
     if st.button("Uitloggen"):
         st.session_state.ingelogd_familie = None
@@ -107,18 +92,12 @@ st.markdown(f"<h1>Familie {familie_naam.capitalize()}</h1>", unsafe_allow_html=T
 cols = st.columns(2)
 for i, item in enumerate(album_data):
     with cols[i % 2]:
-        # We gebruiken een HTML div om de foto en de knop samen te binden
-        st.markdown(f'''
-            <div class="foto-box">
-                <img src="data:image/png;base64,{base64.b64encode(open(item['foto'], "rb").read()).decode()}">
-                <p class="naam-label">{item["titel"]}</p>
-            </div>
-        ''', unsafe_allow_html=True)
+        # Toon de foto
+        st.image(item['foto'], use_container_width=True)
         
-        # De knop staat hier direct onder in de code, 
-        # maar de CSS zet hem BOVENOP de foto-box div.
-        if st.button(" ", key=f"btn_{i}"):
+        # De knop met de naam die het geluid start
+        if st.button(f"Hoor {item['titel']}", key=f"btn_{i}"):
             with open(item['audio'], "rb") as f:
-                b64 = base64.b64encode(f.read()).decode()
-                st.markdown(f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>', unsafe_allow_html=True)
+                audio_bytes = f.read()
+                st.audio(audio_bytes, format="audio/mp3", autoplay=True)
             st.balloons()
