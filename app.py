@@ -15,7 +15,7 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
 
-# Basis setup als de tijdelijke database leeg is
+# Als de database leeg is (na reset of eerste keer), laden we de vaste basis
 if not album_data:
     album_data = [
         {"titel": "Louis Mestdagh", "foto": f"{standaard_pad}/louis.jpg", "audio": f"{standaard_pad}/louis.mp3"},
@@ -38,29 +38,51 @@ with st.sidebar:
     vol_float = vol_level / 100
     
     st.divider()
-    st.subheader("Tijdelijk aanpassen")
-    t = st.selectbox("Wie wil je aanpassen?", [p["titel"] for p in album_data])
-    f = st.file_uploader("Nieuwe Tijdelijke Foto")
-    a = st.file_uploader("Nieuw Tijdelijk Geluid")
     
-    if st.button("Bijwerken"):
-        idx = next((i for i, item in enumerate(album_data) if item["titel"] == t), None)
-        if idx is not None:
-            if f:
-                fp = os.path.join(pad, f.name); open(fp, "wb").write(f.getbuffer())
-                album_data[idx]["foto"] = fp
-            if a:
-                ap = os.path.join(pad, a.name); open(ap, "wb").write(a.getbuffer())
-                album_data[idx]["audio"] = ap
-            json.dump(album_data, open(DB_FILE, "w"))
-            st.rerun()
+    # KEUZE: Aanpassen of Nieuw
+    beheer_optie = st.radio("Wat wil je doen?", ["Bestaande aanpassen", "Nieuw persoon toevoegen"])
+    
+    if beheer_optie == "Bestaande aanpassen":
+        t = st.selectbox("Kies persoon", [p["titel"] for p in album_data])
+        f = st.file_uploader("Nieuwe Tijdelijke Foto")
+        a = st.file_uploader("Nieuw Tijdelijk Geluid")
+        if st.button("Bijwerken"):
+            idx = next((i for i, item in enumerate(album_data) if item["titel"] == t), None)
+            if idx is not None:
+                if f:
+                    fp = os.path.join(pad, f.name); open(fp, "wb").write(f.getbuffer())
+                    album_data[idx]["foto"] = fp
+                if a:
+                    ap = os.path.join(pad, a.name); open(ap, "wb").write(a.getbuffer())
+                    album_data[idx]["audio"] = ap
+                json.dump(album_data, open(DB_FILE, "w"))
+                st.rerun()
+
+    else:
+        nieuw_naam = st.text_input("Naam van de nieuwe persoon")
+        f_nieuw = st.file_uploader("Foto uploaden")
+        a_nieuw = st.file_uploader("Geluid uploaden")
+        if st.button("Toevoegen aan album"):
+            if nieuw_naam and f_nieuw and a_nieuw:
+                fp = os.path.join(pad, f_nieuw.name); open(fp, "wb").write(f_nieuw.getbuffer())
+                ap = os.path.join(pad, a_nieuw.name); open(ap, "wb").write(a_nieuw.getbuffer())
+                album_data.append({"titel": nieuw_naam, "foto": fp, "audio": ap})
+                json.dump(album_data, open(DB_FILE, "w"))
+                st.rerun()
+            else:
+                st.warning("Vul a.u.b. een naam in en upload zowel een foto als geluid.")
+
+    st.divider()
+    if st.button("🗑️ Reset naar basis (Louis & Kimberly)"):
+        if os.path.exists(DB_FILE): os.remove(DB_FILE)
+        st.rerun()
 
 # --- 5. HET SCHERM ---
 st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
 
 cols = st.columns(3)
 for i, item in enumerate(album_data):
-    # Check of de foto bestaat (of in 'data_test' of in 'standaard')
+    # Check of bestand bestaat (lokaal of in de standaard map)
     if item.get('foto') and os.path.exists(item['foto']):
         with cols[i % 3]:
             img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
@@ -80,3 +102,5 @@ for i, item in enumerate(album_data):
                 {audio_html}
             </div>
             """, height=320)
+
+st.button("💻 Volledig scherm", on_click=lambda: st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0))
