@@ -15,6 +15,7 @@ FAMILIES = {
 
 # --- 2. NACHT-CHECK FUNCTIE ---
 def is_nacht():
+    # De tijd wordt opgehaald. Pas deze uren aan om te testen!
     nu = datetime.now().hour
     # Nacht is tussen 21:00 en 07:00
     return nu >= 21 or nu < 7
@@ -42,34 +43,34 @@ if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
 else: album_data = []
 
-# --- 5. STYLING (DAG EN NACHT) ---
+# --- 5. STYLING (AUTOMATISCH DAG/NACHT) ---
 if is_nacht():
-    bg_color = "#121212"  # Donkergrijs/zwart
-    text_color = "#BB86FC" # Zacht paars
-    h1_color = "#FFFFFF"
+    bg_color = "#0A0E14"  # Diep nachtblauw
+    text_color = "#A0A0A0"
+    card_bg = "transparent"
 else:
     bg_color = "#FDFCF0"  # Warm wit
-    text_color = "#2E7D32" # Groen
-    h1_color = "#2E7D32"
+    text_color = "#2E7D32"
+    card_bg = "#FFFFFF"
 
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {bg_color}; }}
-    h1 {{ color: {h1_color}; text-align: center; font-size: 30px; }}
-    .nacht-tekst {{ color: {text_color}; text-align: center; font-size: 24px; margin-top: 50px; }}
+    h1 {{ color: {text_color}; text-align: center; font-size: 35px; font-family: 'Arial'; }}
+    .nacht-boodschap {{ color: white; text-align: center; font-size: 28px; margin-top: 100px; font-family: 'Arial'; }}
     
+    /* Foto's en knoppen */
     [data-testid="stImage"] img {{
         border-radius: 20px 20px 0 0 !important;
         border: 4px solid #2E7D32 !important;
-        height: 180px !important;
-        width: 100% !important;
+        height: 200px !important;
         object-fit: cover;
     }}
     .stButton button {{
         width: 100% !important;
         background-color: #2E7D32 !important;
         color: white !important;
-        font-size: 18px !important;
+        font-size: 20px !important;
         height: 60px !important;
         border-radius: 0 0 20px 20px !important;
         border: none !important;
@@ -78,37 +79,42 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 6. HET SCHERM TONEN ---
+# --- 6. HET SCHERM ---
 
 if is_nacht():
-    # NACHT MODUS
-    st.markdown("<h1>🌙 Goedenacht</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='nacht-tekst'>Het is tijd om uit te rusten.<br>Morgen zijn alle foto's er weer!</p>", unsafe_allow_html=True)
-    # Eventueel een rustig plaatje toevoegen:
-    # st.image("https://images.unsplash.com/photo-1502481851512-e9e2529bbbf9", use_column_width=True)
+    # --- NACHT SCHERM ---
+    st.markdown("<div class='nacht-boodschap'>🌙<br><br>Het is nacht.<br>Slaap lekker en tot morgen!</div>", unsafe_allow_html=True)
+    # Geen foto's of knoppen zichtbaar
 else:
-    # DAG MODUS (HET ALBUM)
+    # --- DAG SCHERM (ALBUM) ---
     st.markdown(f"<h1>Familie {familie_naam.capitalize()}</h1>", unsafe_allow_html=True)
+    
     cols = st.columns(3) 
     for i, item in enumerate(album_data):
         with cols[i % 3]:
             st.image(item['foto'])
-            if st.button(f"Hoor {item['titel']}", key=f"audio_btn_{i}"):
+            if st.button(f"Hoor {item['titel']}", key=f"audio_{i}"):
                 with open(item['audio'], "rb") as f:
-                    audio_bytes = f.read()
-                    st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+                    audio_base64 = base64.b64encode(f.read()).decode()
+                    # HTML hack voor geforceerde audio play
+                    audio_html = f'''
+                        <audio autoplay>
+                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                        </audio>
+                    '''
+                    st.markdown(audio_html, unsafe_allow_html=True)
                 st.balloons()
 
-# --- 7. BEHEER (Zijbalk blijft altijd bereikbaar voor jou) ---
+# --- 7. BEHEER (Altijd in zijbalk) ---
 with st.sidebar:
+    st.write(f"Ingelogd: {familie_naam}")
     if st.button("Uitloggen"):
         st.session_state.ingelogd_familie = None
         st.rerun()
     st.divider()
-    st.subheader("Beheer")
     titel = st.text_input("Naam")
-    foto = st.file_uploader("Foto", type=['jpg','png','jpeg'])
-    audio = st.file_uploader("Geluid", type=['mp3','wav'])
+    foto = st.file_uploader("Foto")
+    audio = st.file_uploader("Audio")
     if st.button("Opslaan"):
         if foto and audio and titel:
             f_path = os.path.join(data_pad, foto.name)
