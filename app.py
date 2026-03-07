@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import json
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # --- 1. CONFIGURATIE ---
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
@@ -39,27 +39,28 @@ if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
 else: album_data = []
 
-# Laad of maak nacht-instellingen
 if os.path.exists(CONFIG_FILE):
     with open(CONFIG_FILE, "r") as f: config = json.load(f)
 else:
     config = {"nacht_start": 21, "nacht_eind": 7}
 
-# --- 4. NACHT-CHECK ---
+# --- 4. NACHT-CHECK (Gecorrigeerd voor België/Nederland tijd) ---
 def check_nacht():
-    nu = datetime.now().hour
+    # Streamlit servers lopen op UTC. Wij tellen er 1 uur bij op voor onze tijdzone.
+    nu = (datetime.utcnow() + timedelta(hours=1)).hour
     start = config["nacht_start"]
     eind = config["nacht_eind"]
-    if start > eind: # Nacht gaat over middernacht heen (bijv 21u tot 7u)
+    
+    if start > eind: # Nacht overbrugt middernacht (bijv. 21u tot 7u)
         return nu >= start or nu < eind
-    else: # Nacht is binnen dezelfde dag (bijv 0u tot 6u)
+    else: # Nacht binnen dezelfde dag (bijv. 0u tot 6u)
         return start <= nu < eind
 
-is_nacht = check_nacht()
+is_nacht_actief = check_nacht()
 
 # --- 5. STYLING ---
-bg_color = "#0A0E14" if is_nacht else "#FDFCF0"
-text_color = "#FFFFFF" if is_nacht else "#2E7D32"
+bg_color = "#0A0E14" if is_nacht_actief else "#FDFCF0"
+text_color = "#FFFFFF" if is_nacht_actief else "#2E7D32"
 
 st.markdown(f"""
     <style>
@@ -94,11 +95,11 @@ with st.sidebar:
         st.rerun()
     
     st.divider()
-    st.subheader("Nieuwe foto")
+    st.subheader("Foto Toevoegen")
     titel = st.text_input("Naam")
     foto = st.file_uploader("Kies foto")
     audio = st.file_uploader("Kies geluid")
-    if st.button("Opslaan in album"):
+    if st.button("Opslaan"):
         if foto and audio and titel:
             f_path = os.path.join(data_pad, foto.name)
             a_path = os.path.join(data_pad, audio.name)
@@ -113,7 +114,7 @@ with st.sidebar:
         st.rerun()
 
 # --- 7. HET SCHERM ---
-if is_nacht:
+if is_nacht_actief:
     st.markdown(f"<div style='text-align:center; padding-top:100px;'> <h1 style='font-size:100px;'>🌙</h1> <h2 style='color:white;'>Het is nacht.</h2> <p style='color:gray;'>Slaap lekker, tot morgen!</p> </div>", unsafe_allow_html=True)
 else:
     st.markdown(f"<h1 style='text-align:center; color:#2E7D32;'>Familie {familie_naam.capitalize()}</h1>", unsafe_allow_html=True)
