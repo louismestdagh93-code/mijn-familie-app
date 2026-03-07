@@ -11,6 +11,8 @@ FAMILIES = {"jansen": "jansen2026", "pietersen": "pietersen2026", "test": "test"
 
 if 'ingelogd_familie' not in st.session_state:
     st.session_state.ingelogd_familie = None
+if 'audio_om_te_spelen' not in st.session_state:
+    st.session_state.audio_om_te_spelen = None
 
 # --- 2. LOGIN ---
 if st.session_state.ingelogd_familie is None:
@@ -42,29 +44,27 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING & MASTER PLAYER SCRIPT ---
+# --- 5. STYLING ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
-# Dit script vangt signalen op van de foto's en beheert de audio centraal
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
     h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
+    
+    /* Maak de klik-knop onzichtbaar maar dekkend over de foto */
+    .stButton button {{
+        position: absolute;
+        width: 100%;
+        height: 240px;
+        z-index: 10;
+        background: transparent !important;
+        border: none !important;
+        color: transparent !important;
+    }}
 </style>
-
-<audio id="master-player" style="display:none;"></audio>
-
-<script>
-    window.addEventListener('message', function(e) {{
-        if (e.data.type === 'play') {{
-            const player = document.getElementById('master-player');
-            player.src = e.data.src;
-            player.play();
-        }}
-    }});
-</script>
 """, unsafe_allow_html=True)
 
 # --- 6. BEHEER (Zijbalk) ---
@@ -80,7 +80,7 @@ with st.sidebar:
     t = st.text_input("Naam")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
-    if st.button("Toevoegen/Bijwerken"):
+    if st.button("Opslaan in Album"):
         if t:
             index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
             item = album_data[index] if index is not None else {"titel": t, "foto": "", "audio": ""}
@@ -104,24 +104,33 @@ with st.sidebar:
 if is_nacht:
     st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
 else:
+    # --- DE ONZICHTBARE SPELER ---
+    # Als er audio klaatstaat, speelt deze direct af
+    if st.session_state.audio_om_te_spelen:
+        st.audio(st.session_state.audio_om_te_spelen, autoplay=True)
+        # Reset na afspelen zodat hij niet blijft herhalen bij elke actie
+        st.session_state.audio_om_te_spelen = None
+
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
-    cols = st.columns(3)
     
+    cols = st.columns(3)
     for i, item in enumerate(album_data):
-        if item.get('foto') and os.path.exists(item['foto']) and item.get('audio') and os.path.exists(item['audio']):
+        if item.get('foto') and os.path.exists(item['foto']):
             with cols[i % 3]:
+                # Visuele kaart
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-                aud_src = f"data:audio/mp3;base64,{aud_b64}"
-                
-                # De HTML kaart stuurt nu een bericht naar de 'Master Player'
-                st.components.v1.html(f"""
-                <div onclick="parent.postMessage({{type: 'play', src: '{aud_src}'}}, '*')" 
-                     style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
+                st.markdown(f"""
+                <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white;">
                     <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
                     <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
                 </div>
-                """, height=250)
+                """, unsafe_allow_html=True)
+                
+                # Onzichtbare knop over de foto
+                if st.button("Speel", key=f"btn_{i}"):
+                    if item.get('audio') and os.path.exists(item['audio']):
+                        st.session_state.audio_om_te_spelen = item['audio']
+                        st.rerun()
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
