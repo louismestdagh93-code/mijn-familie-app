@@ -18,7 +18,7 @@ def is_nacht():
     # De tijd wordt opgehaald. Pas deze uren aan om te testen!
     nu = datetime.now().hour
     # Nacht is tussen 14:00 en 07:00
-    return nu >= 21 or nu < 7
+    return nu >= 14 or nu < 7
 
 if 'ingelogd_familie' not in st.session_state:
     st.session_state.ingelogd_familie = None
