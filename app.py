@@ -31,15 +31,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. BEHEER & VOLUME (Zijbalk) ---
+# --- 4. BEHEER (Zijbalk) ---
 with st.sidebar:
     st.header("⚙️ Instellingen")
-    # De nieuwe volumeknop
     vol_level = st.slider("Volume van de spraak", 0, 100, 80)
-    vol_float = vol_level / 100  # Omzetten naar een getal tussen 0 en 1
+    vol_float = vol_level / 100
     
     st.divider()
-    st.subheader("Persoon toevoegen")
+    st.subheader("Nieuw persoon / Bijwerken")
     t = st.text_input("Naam")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
@@ -56,9 +55,24 @@ with st.sidebar:
             json.dump(album_data, open(DB_FILE, "w"))
             st.rerun()
     
-    if st.button("🗑️ Wis alles (Reset)"):
-        if os.path.exists(DB_FILE): os.remove(DB_FILE)
-        st.rerun()
+    st.divider()
+    st.subheader("🗑️ Verwijderen")
+    if album_data:
+        # Maak een lijst van alle namen om uit te kiezen
+        opties = [p["titel"] for p in album_data]
+        gekozen_persoon = st.selectbox("Wie wil je verwijderen?", opties)
+        
+        if st.button(f"Verwijder {gekozen_persoon}"):
+            # Filter de lijst: alles behalve de gekozen persoon
+            album_data = [p for p in album_data if p["titel"] != gekozen_persoon]
+            json.dump(album_data, open(DB_FILE, "w"))
+            st.rerun()
+            
+        if st.button("⚠️ Wis het hele album"):
+            if os.path.exists(DB_FILE): os.remove(DB_FILE)
+            st.rerun()
+    else:
+        st.write("Geen personen in album.")
 
 # --- 5. HET SCHERM ---
 st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
@@ -71,17 +85,12 @@ for i, item in enumerate(album_data):
     if foto_bestaat:
         with cols[i % 3]:
             img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-            
             audio_html = ""
             if audio_bestaat:
                 aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-                # De 'volume' property wordt hier via JavaScript gezet
                 audio_html = f"""
                 <audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio>
-                <script>
-                    var a = document.getElementById('aud_{i}');
-                    a.volume = {vol_float};
-                </script>
+                <script>document.getElementById('aud_{i}').volume = {vol_float};</script>
                 """
             
             st.components.v1.html(f"""
