@@ -11,6 +11,8 @@ FAMILIES = {"jansen": "jansen2026", "pietersen": "pietersen2026", "test": "test"
 
 if 'ingelogd_familie' not in st.session_state:
     st.session_state.ingelogd_familie = None
+if 'audio_sync' not in st.session_state:
+    st.session_state.audio_sync = None
 
 # --- 2. LOGIN ---
 if st.session_state.ingelogd_familie is None:
@@ -49,8 +51,20 @@ txt = "#FFFFFF" if is_nacht else "#2E7D32"
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
-    h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
+    h1 {{ color: {txt}; text-align: center; font-family: sans-serif; margin-bottom: 30px; }}
     #MainMenu, footer {{ visibility: hidden; }}
+    
+    /* Maak de standaard Streamlit button onzichtbaar maar dekkend over de foto */
+    .stButton button {{
+        position: absolute;
+        width: 100%;
+        height: 250px;
+        z-index: 10;
+        background: transparent !important;
+        border: none !important;
+        color: transparent !important;
+    }}
+    .stButton button:hover {{ color: transparent !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,51 +96,43 @@ with st.sidebar:
             json.dump(album_data, open(DB_FILE, "w"))
             st.rerun()
     
-    if st.button("Verwijder naam"):
+    if st.button("🗑️ Verwijder deze naam"):
         album_data = [i for i in album_data if i["titel"].lower() != t.lower()]
         json.dump(album_data, open(DB_FILE, "w"))
         st.rerun()
 
 # --- 7. HET SCHERM ---
 if is_nacht:
-    st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:100px; text-align:center;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p style='color:gray;'>Slaap lekker!</p></div>", unsafe_allow_html=True)
 else:
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
     
-    # --- CENTRALE AUDIO PLAYER ---
-    # We maken één centrale speler die we aansturen via JavaScript
-    if "audio_to_play" not in st.session_state:
-        st.session_state.audio_to_play = None
-
     cols = st.columns(3)
     for i, item in enumerate(album_data):
         if item.get('foto') and os.path.exists(item['foto']):
             with cols[i % 3]:
+                # 1. De foto kaart (Visueel)
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                
-                # De knop zet nu een waarde in de 'sessie' van Streamlit
-                if st.button(f"Hoor {item['titel']}", key=f"btn_{i}"):
-                    if item.get('audio') and os.path.exists(item['audio']):
-                        aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-                        st.session_state.audio_to_play = aud_b64
-
-                # De visuele kaart
                 st.markdown(f"""
-                <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white;">
-                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
-                    <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold;">{item['titel']}</div>
+                <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; position: relative;">
+                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:200px; object-fit:cover; display:block;">
+                    <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-    # Als er iets moet spelen, voegen we de audio-tag éénmalig toe aan de pagina
-    if st.session_state.audio_to_play:
+                # 2. De onzichtbare klik-laag over de foto
+                if st.button("Klik", key=f"photo_{i}"):
+                    if item.get('audio') and os.path.exists(item['audio']):
+                        aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                        st.session_state.audio_sync = aud_b64
+                        st.rerun()
+
+    # 3. De centrale speler (speelt af en stopt automatisch de vorige bij rerun)
+    if st.session_state.audio_sync:
         st.components.v1.html(f"""
-            <audio autoplay>
-                <source src="data:audio/mp3;base64,{st.session_state.audio_to_play}" type="audio/mp3">
-            </audio>
+            <audio autoplay><source src="data:audio/mp3;base64,{st.session_state.audio_sync}" type="audio/mp3"></audio>
         """, height=0)
-        # Reset de speler voor de volgende klik
-        st.session_state.audio_to_play = None
+        st.session_state.audio_sync = None # Klaarzetten voor de volgende klik
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
