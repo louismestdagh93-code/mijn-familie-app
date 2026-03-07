@@ -46,6 +46,7 @@ else:
 
 # --- 4. NACHT-CHECK ---
 def check_nacht():
+    # Tijdcorrectie voor België (UTC+1)
     nu = (datetime.utcnow() + timedelta(hours=1)).hour
     start = config["nacht_start"]
     eind = config["nacht_eind"]
@@ -59,10 +60,32 @@ bg_color = "#0A0E14" if is_nacht_actief else "#FDFCF0"
 text_color = "#FFFFFF" if is_nacht_actief else "#2E7D32"
 
 st.markdown(f"""
-    <style>
+<style>
     .stApp {{ background-color: {bg_color}; }}
     .stButton button {{
         width: 100% !important;
         background-color: #2E7D32 !important;
         color: white !important;
-        height:
+        height: 60px !important;
+        border-radius: 0 0 20px 20px !important;
+        border: none !important;
+    }}
+    [data-testid="stImage"] img {{
+        border-radius: 20px 20px 0 0 !important;
+        border: 4px solid #2E7D32 !important;
+        height: 180px !important;
+        object-fit: cover;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+# --- 6. SCHERM-CONTROLS ---
+if not is_nacht_actief:
+    if st.button("Zet op volledig scherm"):
+        st.components.v1.html("<script>var elem = window.parent.document.documentElement; if (elem.requestFullscreen) { elem.requestFullscreen(); }</script>", height=0)
+
+# --- 7. BEHEER (Zijbalk) ---
+with st.sidebar:
+    st.header("⚙️ Instellingen")
+    config["nacht_start"] = st.slider("Start nacht", 0, 23, config["nacht_start"])
+    config["nacht
