@@ -31,11 +31,9 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 CFG_FILE = os.path.join(pad, "config.json")
 
-# Veilig laden van data
 if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
-else:
-    album_data = []
+else: album_data = []
 
 config = {"n_start": 21, "n_eind": 7}
 if os.path.exists(CFG_FILE):
@@ -68,25 +66,20 @@ with st.sidebar:
     st.header("⚙️ Instellingen")
     config["n_start"] = st.slider("Start nacht", 0, 23, config.get("n_start", 21))
     config["n_eind"] = st.slider("Einde nacht", 0, 23, config.get("n_eind", 7))
-    if st.button("Opslaan"):
+    if st.button("Tijden opslaan"):
         with open(CFG_FILE, "w") as f: json.dump(config, f)
         st.rerun()
     
     st.divider()
-    st.subheader("Foto/Audio Beheren")
+    st.subheader("➕ Toevoegen of Bijwerken")
     t = st.text_input("Naam van de persoon")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
     
-    if st.button("Toevoegen/Bijwerken"):
+    if st.button("Opslaan"):
         if t:
             index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
-            
-            if index is not None:
-                item = album_data[index]
-            else:
-                item = {"titel": t, "foto": "", "audio": ""}
-            
+            item = album_data[index] if index is not None else {"titel": t, "foto": "", "audio": ""}
             if f:
                 fp = os.path.join(pad, f.name)
                 with open(fp, "wb") as m: m.write(f.getbuffer())
@@ -95,13 +88,32 @@ with st.sidebar:
                 ap = os.path.join(pad, a.name)
                 with open(ap, "wb") as m: m.write(a.getbuffer())
                 item["audio"] = ap
-            
             if index is not None: album_data[index] = item
             else: album_data.append(item)
-                
             with open(DB_FILE, "w") as m: json.dump(album_data, m)
             st.success(f"{t} opgeslagen!")
             st.rerun()
+
+    st.divider()
+    st.subheader("🗑️ Verwijderen")
+    if album_data:
+        namen = [item["titel"] for item in album_data]
+        te_verwijderen = st.selectbox("Kies wie je wilt verwijderen", namen)
+        if st.button(f"Verwijder {te_verwijderen}"):
+            # Verwijder bestanden fysiek (optioneel, maar netter)
+            item = next(i for i in album_data if i["titel"] == te_verwijderen)
+            try:
+                if os.path.exists(item["foto"]): os.remove(item["foto"])
+                if os.path.exists(item["audio"]): os.remove(item["audio"])
+            except: pass
+            
+            # Update lijst
+            album_data = [i for i in album_data if i["titel"] != te_verwijderen]
+            with open(DB_FILE, "w") as m: json.dump(album_data, m)
+            st.warning(f"{te_verwijderen} is verwijderd.")
+            st.rerun()
+    else:
+        st.write("Geen personen in album.")
 
 # --- 7. HET SCHERM ---
 if is_nacht:
@@ -111,13 +123,11 @@ else:
     cols = st.columns(3)
     
     for i, item in enumerate(album_data):
-        # Alleen tonen als er een foto en audio is
         if item.get('foto') and item.get('audio') and os.path.exists(item['foto']):
             with cols[i % 3]:
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
                 aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
                 
-                # HTML met ingebouwde audio-stop logica
                 st.components.v1.html(f"""
                 <div id="card_{i}" onclick="playAudio()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
                     <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
@@ -126,13 +136,12 @@ else:
                 </div>
                 <script>
                     function playAudio() {{
-                        // Stop alle andere audio op de pagina
-                        window.parent.document.querySelectorAll('audio').forEach(el => {{
-                            el.pause();
-                            el.currentTime = 0;
-                        }});
-                        // Speel deze audio
-                        document.getElementById('aud_{i}').play();
+                        // Stop alle andere audio fragmenten op de pagina
+                        var allAudios = window.parent.document.querySelectorAll('audio');
+                        allAudios.forEach(function(a) {{ a.pause(); a.currentTime = 0; }});
+                        // Speel dit fragment
+                        var current = document.getElementById('aud_{i}');
+                        current.play();
                     }}
                 </script>
                 """, height=250)
