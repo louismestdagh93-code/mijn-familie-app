@@ -44,7 +44,7 @@ is_nacht = check_nacht()
 
 # --- 5. STYLING ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
-txt = "#FFFFFF" if is_nacht else "#2E7D32"
+txt = "#2E7D32"
 
 st.markdown(f"""
 <style>
@@ -52,23 +52,17 @@ st.markdown(f"""
     h1 {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
     
-    /* Fix voor het uitrekken van de foto's */
-    .foto-card {{
+    /* Container voor de foto's om uitrekken te voorkomen */
+    .photo-card {{
         border: 4px solid #2E7D32;
         border-radius: 20px;
+        overflow: hidden;
         background: white;
-        margin-bottom: 20px;
-        max-width: 350px;
-        margin-left: auto;
-        margin-right: auto;
+        transition: transform 0.2s;
+        max-width: 400px;
+        margin: auto;
     }}
-    
-    .foto-img {{
-        width: 100%;
-        height: 250px;
-        object-fit: cover;
-        display: block;
-    }}
+    .photo-card:active {{ transform: scale(0.95); }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -85,7 +79,7 @@ with st.sidebar:
     t = st.text_input("Naam")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
-    if st.button("Opslaan/Bijwerken"):
+    if st.button("Toevoegen/Bijwerken"):
         if t:
             index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
             item = album_data[index] if index is not None else {"titel": t, "foto": "", "audio": ""}
@@ -100,10 +94,15 @@ with st.sidebar:
             json.dump(album_data, open(DB_FILE, "w"))
             st.rerun()
     
-    if st.button("Verwijder naam"):
-        album_data = [i for i in album_data if i["titel"].lower() != t.lower()]
-        json.dump(album_data, open(DB_FILE, "w"))
-        st.rerun()
+    st.divider()
+    st.subheader("🗑️ Verwijderen")
+    if album_data:
+        alle_namen = [i["titel"] for i in album_data]
+        te_verwijderen = st.selectbox("Kies persoon om te verwijderen", alle_namen)
+        if st.button(f"Verwijder {te_verwijderen}"):
+            album_data = [i for i in album_data if i["titel"] != te_verwijderen]
+            json.dump(album_data, open(DB_FILE, "w"))
+            st.rerun()
 
 # --- 7. HET SCHERM ---
 if is_nacht:
@@ -111,22 +110,43 @@ if is_nacht:
 else:
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
     
+    # We tonen de kaarten
     cols = st.columns(3)
     for i, item in enumerate(album_data):
-        if item.get('foto') and os.path.exists(item['foto']):
+        if item.get('foto') and os.path.exists(item['foto']) and item.get('audio') and os.path.exists(item['audio']):
             with cols[i % 3]:
-                # 1. Foto en naam in een kaart
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                st.markdown(f"""
-                <div class="foto-card">
-                    <img src="data:image/jpeg;base64,{img_b64}" class="foto-img">
-                    <div style="background:#2E7D32; color:white; padding:8px; text-align:center; font-weight:bold;">{item['titel']}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
                 
-                # 2. Audio speler direct eronder (Meest stabiel tegen door elkaar spelen)
-                if item.get('audio') and os.path.exists(item['audio']):
-                    st.audio(item['audio'])
+                st.components.v1.html(f"""
+                <div onclick="playSolo()" class="photo-card" style="cursor:pointer; font-family:sans-serif;">
+                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:280px; object-fit:cover; display:block;">
+                    <div style="background:#2E7D32; color:white; padding:12px; text-align:center; font-weight:bold; font-size:20px;">{item['titel']}</div>
+                    <audio id="player" src="data:audio/mp3;base64,{aud_b64}"></audio>
+                </div>
+                
+                <script>
+                    function playSolo() {{
+                        // Stop alle audio op de HELE pagina
+                        const allAudios = window.parent.document.querySelectorAll('audio');
+                        allAudios.forEach(a => {{ a.pause(); a.currentTime = 0; }});
+                        
+                        // Stop audio in andere frames
+                        window.parent.postMessage('stop-all', '*');
+                        
+                        // Speel deze af
+                        document.getElementById('player').play();
+                    }}
+                    
+                    window.addEventListener('message', function(e) {{
+                        if (e.data === 'stop-all') {{
+                            document.getElementById('player').pause();
+                            document.getElementById('player').currentTime = 0;
+                        }}
+                    }});
+                </script>
+                """, height=360)
 
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
