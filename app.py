@@ -42,29 +42,9 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING & CENTRALE AUDIO REGISSEUR ---
+# --- 5. STYLING ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
-
-# Dit script zorgt ervoor dat alle audio-elementen in alle iframes stoppen
-st.markdown("""
-<script>
-    window.addEventListener('message', function(e) {
-        if (e.data.type === 'playAudio') {
-            const allAudios = window.parent.document.querySelectorAll('audio');
-            const allIframes = window.parent.document.querySelectorAll('iframe');
-            
-            // Stop audio in de hoofd-window
-            allAudios.forEach(a => { a.pause(); a.currentTime = 0; });
-            
-            // Vertel alle andere iframes om hun audio te stoppen
-            allIframes.forEach(ifrm => {
-                ifrm.contentWindow.postMessage({type: 'stopAudio'}, '*');
-            });
-        }
-    });
-</script>
-""", unsafe_allow_html=True)
 
 st.markdown(f"""
 <style>
@@ -101,51 +81,52 @@ with st.sidebar:
             else: album_data.append(item)
             json.dump(album_data, open(DB_FILE, "w"))
             st.rerun()
-
-    if st.button("Verwijder geselecteerde"):
-         # Simpele verwijder-logica voor de laatst getypte naam
-         album_data = [i for i in album_data if i["titel"].lower() != t.lower()]
-         json.dump(album_data, open(DB_FILE, "w"))
-         st.rerun()
+    
+    if st.button("Verwijder naam"):
+        album_data = [i for i in album_data if i["titel"].lower() != t.lower()]
+        json.dump(album_data, open(DB_FILE, "w"))
+        st.rerun()
 
 # --- 7. HET SCHERM ---
 if is_nacht:
     st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
 else:
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
-    cols = st.columns(3)
     
+    # --- CENTRALE AUDIO PLAYER ---
+    # We maken één centrale speler die we aansturen via JavaScript
+    if "audio_to_play" not in st.session_state:
+        st.session_state.audio_to_play = None
+
+    cols = st.columns(3)
     for i, item in enumerate(album_data):
-        if item.get('foto') and os.path.exists(item['foto']) and item.get('audio') and os.path.exists(item['audio']):
+        if item.get('foto') and os.path.exists(item['foto']):
             with cols[i % 3]:
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
                 
-                st.components.v1.html(f"""
-                <div onclick="broadcastPlay()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
+                # De knop zet nu een waarde in de 'sessie' van Streamlit
+                if st.button(f"Hoor {item['titel']}", key=f"btn_{i}"):
+                    if item.get('audio') and os.path.exists(item['audio']):
+                        aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                        st.session_state.audio_to_play = aud_b64
+
+                # De visuele kaart
+                st.markdown(f"""
+                <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white;">
                     <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
-                    <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
-                    <audio id="aud"></audio>
+                    <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold;">{item['titel']}</div>
                 </div>
-                <script>
-                    var audio = document.getElementById('aud');
-                    audio.src = "data:audio/mp3;base64,{aud_b64}";
+                """, unsafe_allow_html=True)
 
-                    function broadcastPlay() {{
-                        // Stuur bericht naar de 'regisseur' bovenin
-                        window.parent.postMessage({{type: 'playAudio'}}, '*');
-                        audio.play();
-                    }}
-
-                    // Luister naar de 'regisseur' om te stoppen
-                    window.addEventListener('message', function(e) {{
-                        if (e.data.type === 'stopAudio') {{
-                            audio.pause();
-                            audio.currentTime = 0;
-                        }}
-                    }});
-                </script>
-                """, height=250)
+    # Als er iets moet spelen, voegen we de audio-tag éénmalig toe aan de pagina
+    if st.session_state.audio_to_play:
+        st.components.v1.html(f"""
+            <audio autoplay>
+                <source src="data:audio/mp3;base64,{st.session_state.audio_to_play}" type="audio/mp3">
+            </audio>
+        """, height=0)
+        # Reset de speler voor de volgende klik
+        st.session_state.audio_to_play = None
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
