@@ -15,11 +15,11 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
 
-# Als de database leeg is (na reset of eerste keer), laden we de vaste basis
+# Aangepast aan jouw screenshots (.png in plaats van .jpg)
 if not album_data:
     album_data = [
-        {"titel": "Louis Mestdagh", "foto": f"{standaard_pad}/louis.jpg", "audio": f"{standaard_pad}/louis.mp3"},
-        {"titel": "Kimberly Dubois", "foto": f"{standaard_pad}/kimberly.jpg", "audio": f"{standaard_pad}/kimberly.mp3"}
+        {"titel": "Louis Mestdagh", "foto": f"{standaard_pad}/Louis.png", "audio": f"{standaard_pad}/louis.mp3"},
+        {"titel": "Kimberly Dubois", "foto": f"{standaard_pad}/Kimberly.png", "audio": f"{standaard_pad}/kimberly.mp3"}
     ]
 
 # --- 3. STYLING ---
@@ -38,28 +38,26 @@ with st.sidebar:
     vol_float = vol_level / 100
     
     st.divider()
-    
-    # KEUZE: Aanpassen of Nieuw
     beheer_optie = st.radio("Wat wil je doen?", ["Bestaande aanpassen", "Nieuw persoon toevoegen"])
     
     if beheer_optie == "Bestaande aanpassen":
-        t = st.selectbox("Kies persoon", [p["titel"] for p in album_data])
-        f = st.file_uploader("Nieuwe Tijdelijke Foto")
-        a = st.file_uploader("Nieuw Tijdelijk Geluid")
-        if st.button("Bijwerken"):
-            idx = next((i for i, item in enumerate(album_data) if item["titel"] == t), None)
-            if idx is not None:
-                if f:
-                    fp = os.path.join(pad, f.name); open(fp, "wb").write(f.getbuffer())
-                    album_data[idx]["foto"] = fp
-                if a:
-                    ap = os.path.join(pad, a.name); open(ap, "wb").write(a.getbuffer())
-                    album_data[idx]["audio"] = ap
-                json.dump(album_data, open(DB_FILE, "w"))
-                st.rerun()
-
+        if album_data:
+            t = st.selectbox("Kies persoon", [p["titel"] for p in album_data])
+            f = st.file_uploader("Nieuwe Tijdelijke Foto")
+            a = st.file_uploader("Nieuw Tijdelijk Geluid")
+            if st.button("Bijwerken"):
+                idx = next((i for i, item in enumerate(album_data) if item["titel"] == t), None)
+                if idx is not None:
+                    if f:
+                        fp = os.path.join(pad, f.name); open(fp, "wb").write(f.getbuffer())
+                        album_data[idx]["foto"] = fp
+                    if a:
+                        ap = os.path.join(pad, a.name); open(ap, "wb").write(a.getbuffer())
+                        album_data[idx]["audio"] = ap
+                    json.dump(album_data, open(DB_FILE, "w"))
+                    st.rerun()
     else:
-        nieuw_naam = st.text_input("Naam van de nieuwe persoon")
+        nieuw_naam = st.text_input("Naam")
         f_nieuw = st.file_uploader("Foto uploaden")
         a_nieuw = st.file_uploader("Geluid uploaden")
         if st.button("Toevoegen aan album"):
@@ -69,11 +67,9 @@ with st.sidebar:
                 album_data.append({"titel": nieuw_naam, "foto": fp, "audio": ap})
                 json.dump(album_data, open(DB_FILE, "w"))
                 st.rerun()
-            else:
-                st.warning("Vul a.u.b. een naam in en upload zowel een foto als geluid.")
 
     st.divider()
-    if st.button("🗑️ Reset naar basis (Louis & Kimberly)"):
+    if st.button("🗑️ Reset naar basis"):
         if os.path.exists(DB_FILE): os.remove(DB_FILE)
         st.rerun()
 
@@ -82,7 +78,7 @@ st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
 
 cols = st.columns(3)
 for i, item in enumerate(album_data):
-    # Check of bestand bestaat (lokaal of in de standaard map)
+    # We tonen de kaart alleen als de foto ECHT bestaat
     if item.get('foto') and os.path.exists(item['foto']):
         with cols[i % 3]:
             img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
@@ -97,10 +93,8 @@ for i, item in enumerate(album_data):
             
             st.components.v1.html(f"""
             <div onclick="document.getElementById('aud_{i}').play()" class="foto-card">
-                <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:250px; object-fit:cover; display:block;">
+                <img src="data:image/png;base64,{img_b64}" style="width:100%; height:250px; object-fit:cover; display:block;">
                 <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-family:sans-serif;">{item['titel']}</div>
                 {audio_html}
             </div>
             """, height=320)
-
-st.button("💻 Volledig scherm", on_click=lambda: st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0))
