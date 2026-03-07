@@ -70,16 +70,35 @@ with st.sidebar:
         st.rerun()
     
     st.divider()
-    t = st.text_input("Naam")
-    f = st.file_uploader("Foto")
-    a = st.file_uploader("Audio")
-    if st.button("Toevoegen"):
-        if f and a and t:
-            fp, ap = os.path.join(pad, f.name), os.path.join(pad, a.name)
-            open(fp, "wb").write(f.getbuffer())
-            open(ap, "wb").write(a.getbuffer())
-            album_data.append({"titel": t, "foto": fp, "audio": ap})
+    st.subheader("Foto/Audio Beheren")
+    st.info("Typ de NAAM van de persoon. Als de naam al bestaat, wordt deze bijgewerkt.")
+    t = st.text_input("Naam van de persoon (bijv. Louis)")
+    f = st.file_uploader("Nieuwe Foto (leeg laten om huidige te behouden)")
+    a = st.file_uploader("Nieuw Geluid (leeg laten om huidige te behouden)")
+    
+    if st.button("Opslaan in Album"):
+        if t:
+            # Zoek of persoon al bestaat
+            index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
+            
+            new_item = album_data[index].copy() if index is not None else {"titel": t, "foto": "", "audio": ""}
+            
+            if f:
+                fp = os.path.join(pad, f.name)
+                open(fp, "wb").write(f.getbuffer())
+                new_item["foto"] = fp
+            if a:
+                ap = os.path.join(pad, a.name)
+                open(ap, "wb").write(a.getbuffer())
+                new_item["audio"] = ap
+            
+            if index is not None:
+                album_data[index] = new_item
+            else:
+                album_data.append(new_item)
+                
             json.dump(album_data, open(DB_FILE, "w"))
+            st.success(f"{t} bijgewerkt!")
             st.rerun()
 
 # --- 7. HET SCHERM ---
@@ -88,18 +107,37 @@ if is_nacht:
 else:
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
     cols = st.columns(3)
+    
+    # JavaScript om alle andere audio te stoppen
+    js_stop_script = """
+    <script>
+    function playAndStopOthers(id) {
+        var audios = document.getElementsByTagName('audio');
+        for(var i = 0; i < audios.length; i++){
+            if(audios[i].id != id){
+                audios[i].pause();
+                audios[i].currentTime = 0;
+            }
+        }
+        document.getElementById(id).play();
+    }
+    </script>
+    """
+    st.components.v1.html(js_stop_script, height=0)
+
     for i, item in enumerate(album_data):
-        with cols[i % 3]:
-            img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-            aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-            
-            st.components.v1.html(f"""
-                <div onclick="document.getElementById('a{i}').play()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
-                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
-                    <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold;">{item['titel']}</div>
-                    <audio id="a{i}"><source src="data:audio/mp3;base64,{aud_b64}"></audio>
-                </div>
-            """, height=250)
+        if item['foto'] and item['audio']: # Alleen tonen als beide er zijn
+            with cols[i % 3]:
+                img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
+                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                
+                st.components.v1.html(f"""
+                    <div onclick="window.parent.playAndStopOthers('a{i}')" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
+                        <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
+                        <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold;">{item['titel']}</div>
+                        <audio id="a{i}"><source src="data:audio/mp3;base64,{aud_b64}"></audio>
+                    </div>
+                """, height=250)
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
