@@ -42,16 +42,29 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING ---
+# --- 5. STYLING & MASTER PLAYER SCRIPT ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
+# Dit script vangt signalen op van de foto's en beheert de audio centraal
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
     h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
 </style>
+
+<audio id="master-player" style="display:none;"></audio>
+
+<script>
+    window.addEventListener('message', function(e) {{
+        if (e.data.type === 'play') {{
+            const player = document.getElementById('master-player');
+            player.src = e.data.src;
+            player.play();
+        }}
+    }});
+</script>
 """, unsafe_allow_html=True)
 
 # --- 6. BEHEER (Zijbalk) ---
@@ -99,33 +112,15 @@ else:
             with cols[i % 3]:
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
                 aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
+                aud_src = f"data:audio/mp3;base64,{aud_b64}"
                 
+                # De HTML kaart stuurt nu een bericht naar de 'Master Player'
                 st.components.v1.html(f"""
-                <div onclick="togglePlay()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
+                <div onclick="parent.postMessage({{type: 'play', src: '{aud_src}'}}, '*')" 
+                     style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
                     <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
                     <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
-                    <audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio>
                 </div>
-                
-                <script>
-                    const myAudio = document.getElementById('aud_{i}');
-                    
-                    // Luister naar de 'Global Stop' van andere kaarten
-                    window.parent.addEventListener('storage', (e) => {{
-                        if (e.key === 'stop_all_audio') {{
-                            myAudio.pause();
-                            myAudio.currentTime = 0;
-                        }}
-                    }});
-
-                    function togglePlay() {{
-                        // Stuur een signaal naar alle andere kaarten dat ze moeten stoppen
-                        window.parent.localStorage.setItem('stop_all_audio', Date.now());
-                        
-                        // Speel deze audio af
-                        myAudio.play();
-                    }}
-                </script>
                 """, height=250)
 
     if st.button("💻 Volledig scherm"):
