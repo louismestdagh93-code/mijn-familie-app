@@ -31,15 +31,8 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 CFG_FILE = os.path.join(pad, "config.json")
 
-if os.path.exists(DB_FILE):
-    with open(DB_FILE, "r") as f: album_data = json.load(f)
-else: album_data = []
-
-config = {"n_start": 21, "n_eind": 7}
-if os.path.exists(CFG_FILE):
-    try:
-        with open(CFG_FILE, "r") as f: config = json.load(f)
-    except: pass
+album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
+config = json.load(open(CFG_FILE)) if os.path.exists(CFG_FILE) else {"n_start": 21, "n_eind": 7}
 
 # --- 4. NACHT CHECK ---
 def check_nacht():
@@ -49,9 +42,29 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING ---
+# --- 5. STYLING & CENTRALE AUDIO REGISSEUR ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
+
+# Dit script zorgt ervoor dat alle audio-elementen in alle iframes stoppen
+st.markdown("""
+<script>
+    window.addEventListener('message', function(e) {
+        if (e.data.type === 'playAudio') {
+            const allAudios = window.parent.document.querySelectorAll('audio');
+            const allIframes = window.parent.document.querySelectorAll('iframe');
+            
+            // Stop audio in de hoofd-window
+            allAudios.forEach(a => { a.pause(); a.currentTime = 0; });
+            
+            // Vertel alle andere iframes om hun audio te stoppen
+            allIframes.forEach(ifrm => {
+                ifrm.contentWindow.postMessage({type: 'stopAudio'}, '*');
+            });
+        }
+    });
+</script>
+""", unsafe_allow_html=True)
 
 st.markdown(f"""
 <style>
@@ -66,42 +79,34 @@ with st.sidebar:
     st.header("⚙️ Instellingen")
     config["n_start"] = st.slider("Start nacht", 0, 23, config.get("n_start", 21))
     config["n_eind"] = st.slider("Einde nacht", 0, 23, config.get("n_eind", 7))
-    if st.button("Tijden opslaan"):
-        with open(CFG_FILE, "w") as f: json.dump(config, f)
+    if st.button("Opslaan"):
+        json.dump(config, open(CFG_FILE, "w"))
         st.rerun()
     
     st.divider()
-    st.subheader("➕ Toevoegen of Bijwerken")
-    t = st.text_input("Naam van de persoon")
+    t = st.text_input("Naam")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
-    
-    if st.button("Opslaan"):
+    if st.button("Opslaan in Album"):
         if t:
             index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
             item = album_data[index] if index is not None else {"titel": t, "foto": "", "audio": ""}
             if f:
                 fp = os.path.join(pad, f.name)
-                with open(fp, "wb") as m: m.write(f.getbuffer())
-                item["foto"] = fp
+                open(fp, "wb").write(f.getbuffer()); item["foto"] = fp
             if a:
                 ap = os.path.join(pad, a.name)
-                with open(ap, "wb") as m: m.write(a.getbuffer())
-                item["audio"] = ap
+                open(ap, "wb").write(a.getbuffer()); item["audio"] = ap
             if index is not None: album_data[index] = item
             else: album_data.append(item)
-            with open(DB_FILE, "w") as m: json.dump(album_data, m)
+            json.dump(album_data, open(DB_FILE, "w"))
             st.rerun()
 
-    st.divider()
-    st.subheader("🗑️ Verwijderen")
-    if album_data:
-        namen = [item["titel"] for item in album_data]
-        te_verwijderen = st.selectbox("Kies wie je wilt verwijderen", namen)
-        if st.button(f"Verwijder {te_verwijderen}"):
-            album_data = [i for i in album_data if i["titel"] != te_verwijderen]
-            with open(DB_FILE, "w") as m: json.dump(album_data, m)
-            st.rerun()
+    if st.button("Verwijder geselecteerde"):
+         # Simpele verwijder-logica voor de laatst getypte naam
+         album_data = [i for i in album_data if i["titel"].lower() != t.lower()]
+         json.dump(album_data, open(DB_FILE, "w"))
+         st.rerun()
 
 # --- 7. HET SCHERM ---
 if is_nacht:
@@ -111,31 +116,36 @@ else:
     cols = st.columns(3)
     
     for i, item in enumerate(album_data):
-        # Controleer of de bestanden ECHT bestaan voordat we ze proberen te openen
         if item.get('foto') and os.path.exists(item['foto']) and item.get('audio') and os.path.exists(item['audio']):
             with cols[i % 3]:
-                with open(item['foto'], "rb") as img_f:
-                    img_b64 = base64.b64encode(img_f.read()).decode()
-                with open(item['audio'], "rb") as aud_f:
-                    aud_b64 = base64.b64encode(aud_f.read()).decode()
+                img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
+                aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
                 
                 st.components.v1.html(f"""
-                <div id="card_{i}" onclick="playAudio()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
+                <div onclick="broadcastPlay()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
                     <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
                     <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
-                    <audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio>
+                    <audio id="aud"></audio>
                 </div>
                 <script>
-                    function playAudio() {{
-                        var allAudios = window.parent.document.querySelectorAll('audio');
-                        allAudios.forEach(function(a) {{ a.pause(); a.currentTime = 0; }});
-                        document.getElementById('aud_{i}').play();
+                    var audio = document.getElementById('aud');
+                    audio.src = "data:audio/mp3;base64,{aud_b64}";
+
+                    function broadcastPlay() {{
+                        // Stuur bericht naar de 'regisseur' bovenin
+                        window.parent.postMessage({{type: 'playAudio'}}, '*');
+                        audio.play();
                     }}
+
+                    // Luister naar de 'regisseur' om te stoppen
+                    window.addEventListener('message', function(e) {{
+                        if (e.data.type === 'stopAudio') {{
+                            audio.pause();
+                            audio.currentTime = 0;
+                        }}
+                    }});
                 </script>
                 """, height=250)
-        else:
-            # Als bestanden missen, toon een bericht in de beheer-omgeving of negeer in het hoofdscherm
-            pass
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
