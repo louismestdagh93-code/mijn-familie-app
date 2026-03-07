@@ -45,49 +45,26 @@ if os.path.exists(CFG_FILE):
 
 # --- 4. NACHT CHECK ---
 def check_nacht():
+    # Tijdcorrectie voor België (UTC+1)
     nu = (datetime.utcnow() + timedelta(hours=1)).hour
     s, e = config["n_start"], config["n_eind"]
-    return (nu >= s or nu < e) if s > e else (s <= nu < e)
+    if s > e: return nu >= s or nu < e
+    else: return s <= nu < e
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING (Foto-klikbaar & Altijd Naam) ---
+# --- 5. STYLING (Klikbare kaarten) ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
-    
-    /* Container voor de foto en tekst */
-    .foto-card {{
-        cursor: pointer;
-        border: 4px solid #2E7D32;
-        border-radius: 20px;
-        overflow: hidden;
-        background-color: white;
-        margin-bottom: 20px;
-        transition: transform 0.2s;
-    }}
-    .foto-card:active {{ transform: scale(0.95); }}
-    
-    .foto-img {{
-        width: 100%;
-        height: 250px;
-        object-fit: cover;
-        display: block;
-    }}
-    
-    .naam-balk {{
-        background-color: #2E7D32;
-        color: white;
-        text-align: center;
-        padding: 15px;
-        font-size: 20px;
-        font-weight: bold;
-    }}
-    
     h1, h2, p {{ color: {txt}; text-align: center; }}
+    
+    /* Verberg standaard Streamlit elementen voor een cleaner uiterlijk */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -97,4 +74,52 @@ with st.sidebar:
     config["n_start"] = st.slider("Start nacht", 0, 23, config["n_start"])
     config["n_eind"] = st.slider("Einde nacht", 0, 23, config["n_eind"])
     if st.button("Tijden opslaan"):
-        with open(CFG_FILE, "w") as
+        with open(CFG_FILE, "w") as f: json.dump(config, f)
+        st.success("Tijden opgeslagen!")
+        st.rerun()
+    
+    st.divider()
+    st.subheader("Nieuwe foto")
+    titel = st.text_input("Naam persoon")
+    foto = st.file_uploader("Kies foto", type=['png', 'jpg', 'jpeg'])
+    audio = st.file_uploader("Kies geluid", type=['mp3', 'wav'])
+    
+    if st.button("Toevoegen aan album"):
+        if foto and audio and titel:
+            f_path = os.path.join(pad, foto.name)
+            a_path = os.path.join(pad, audio.name)
+            with open(f_path, "wb") as f: f.write(foto.getbuffer())
+            with open(a_path, "wb") as f: f.write(audio.getbuffer())
+            album_data.append({"titel": titel, "foto": f_path, "audio": a_path})
+            with open(DB_FILE, "w") as f: json.dump(album_data, f)
+            st.rerun()
+
+# --- 7. HET SCHERM ---
+if is_nacht:
+    st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
+else:
+    st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+    
+    # Grid van 3 kolommen
+    cols = st.columns(3)
+    for i, item in enumerate(album_data):
+        with cols[i % 3]:
+            # Foto omzetten naar base64 voor HTML
+            with open(item['foto'], "rb") as f_img:
+                img_b64 = base64.b64encode(f_img.read()).decode()
+            with open(item['audio'], "rb") as f_aud:
+                aud_b64 = base64.b64encode(f_aud.read()).decode()
+
+            # HTML kaart: Klikken speelt audio af
+            st.components.v1.html(f"""
+                <div onclick="document.getElementById('aud_{i}').play()" style="
+                    cursor: pointer;
+                    border: 4px solid #2E7D32;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    background-color: white;
+                    text-align: center;
+                    font-family: sans-serif;
+                ">
+                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:200px; object-fit:cover; display:block;">
+                    <div style="background-color:#2E7D32; color:white; padding:15px; font-size:1
