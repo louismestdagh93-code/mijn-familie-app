@@ -42,7 +42,7 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING EN CENTRALE AUDIO CONTROLLER ---
+# --- 5. STYLING ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
@@ -51,32 +51,7 @@ st.markdown(f"""
     .stApp {{ background-color: {bg}; }}
     h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
-    
-    /* Zorg dat de foto-kaarten er mooi uitzien */
-    .foto-container {{
-        border: 4px solid #2E7D32;
-        border-radius: 20px;
-        overflow: hidden;
-        background-color: white;
-        cursor: pointer;
-        transition: transform 0.1s;
-    }}
-    .foto-container:active {{ transform: scale(0.98); }}
 </style>
-
-<script>
-    // De 'Dirigent': stopt het huidige geluid en start het nieuwe
-    function playSingleAudio(audioBase64) {{
-        let player = window.parent.document.getElementById('global-audio-player');
-        if (!player) {{
-            player = window.parent.document.createElement('audio');
-            player.id = 'global-audio-player';
-            window.parent.document.body.appendChild(player);
-        }}
-        player.src = "data:audio/mp3;base64," + audioBase64;
-        player.play();
-    }}
-</script>
 """, unsafe_allow_html=True)
 
 # --- 6. BEHEER (Zijbalk) ---
@@ -125,12 +100,32 @@ else:
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
                 aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
                 
-                # We gebruiken een HTML component die een signaal stuurt naar de centrale 'Dirigent'
                 st.components.v1.html(f"""
-                <div onclick="window.parent.playSingleAudio('{aud_b64}')" class="foto-container" style="border: 4px solid #2E7D32; border-radius: 20px; overflow: hidden; background-color: white; cursor: pointer; font-family: sans-serif;">
+                <div onclick="togglePlay()" style="cursor:pointer; border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; font-family:sans-serif;">
                     <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
                     <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
+                    <audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio>
                 </div>
+                
+                <script>
+                    const myAudio = document.getElementById('aud_{i}');
+                    
+                    // Luister naar de 'Global Stop' van andere kaarten
+                    window.parent.addEventListener('storage', (e) => {{
+                        if (e.key === 'stop_all_audio') {{
+                            myAudio.pause();
+                            myAudio.currentTime = 0;
+                        }}
+                    }});
+
+                    function togglePlay() {{
+                        // Stuur een signaal naar alle andere kaarten dat ze moeten stoppen
+                        window.parent.localStorage.setItem('stop_all_audio', Date.now());
+                        
+                        // Speel deze audio af
+                        myAudio.play();
+                    }}
+                </script>
                 """, height=250)
 
     if st.button("💻 Volledig scherm"):
