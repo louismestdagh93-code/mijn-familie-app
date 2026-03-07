@@ -11,8 +11,6 @@ FAMILIES = {"jansen": "jansen2026", "pietersen": "pietersen2026", "test": "test"
 
 if 'ingelogd_familie' not in st.session_state:
     st.session_state.ingelogd_familie = None
-if 'audio_om_te_spelen' not in st.session_state:
-    st.session_state.audio_om_te_spelen = None
 
 # --- 2. LOGIN ---
 if st.session_state.ingelogd_familie is None:
@@ -44,41 +42,32 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING (ONZICHTBARE KNOPPEN) ---
+# --- 5. STYLING ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
-    h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
+    h1 {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
     
-    /* De container waar de foto en de knop in zitten */
-    .foto-box {{
-        position: relative;
-        width: 100%;
-        height: 250px;
-    }}
-
-    /* De knop zelf: 100% dekkend maar onzichtbaar */
-    div.stButton > button {{
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 250px !important;
-        background: transparent !important;
-        border: none !important;
-        color: transparent !important;
-        z-index: 10;
-        cursor: pointer;
+    /* Fix voor het uitrekken van de foto's */
+    .foto-card {{
+        border: 4px solid #2E7D32;
+        border-radius: 20px;
+        background: white;
+        margin-bottom: 20px;
+        max-width: 350px;
+        margin-left: auto;
+        margin-right: auto;
     }}
     
-    /* Voorkom dat de knop een randje krijgt bij klikken */
-    div.stButton > button:focus {{
-        box-shadow: none !important;
-        color: transparent !important;
+    .foto-img {{
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        display: block;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -96,7 +85,7 @@ with st.sidebar:
     t = st.text_input("Naam")
     f = st.file_uploader("Foto")
     a = st.file_uploader("Geluid")
-    if st.button("Opslaan in Album"):
+    if st.button("Opslaan/Bijwerken"):
         if t:
             index = next((i for i, item in enumerate(album_data) if item["titel"].lower() == t.lower()), None)
             item = album_data[index] if index is not None else {"titel": t, "foto": "", "audio": ""}
@@ -118,37 +107,26 @@ with st.sidebar:
 
 # --- 7. HET SCHERM ---
 if is_nacht:
-    st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-top:100px; text-align:center;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2></div>", unsafe_allow_html=True)
 else:
-    # De centrale audio-speler (onzichtbaar)
-    if st.session_state.audio_om_te_spelen:
-        st.audio(st.session_state.audio_om_te_spelen, autoplay=True)
-        st.session_state.audio_om_te_spelen = None
-
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
     
     cols = st.columns(3)
     for i, item in enumerate(album_data):
         if item.get('foto') and os.path.exists(item['foto']):
             with cols[i % 3]:
-                # We maken een container voor de foto
+                # 1. Foto en naam in een kaart
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-                
-                # De 'foto-box' houdt de visuele kaart en de onzichtbare knop bij elkaar
                 st.markdown(f"""
-                <div class="foto-box">
-                    <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; pointer-events: none;">
-                        <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
-                        <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
-                    </div>
+                <div class="foto-card">
+                    <img src="data:image/jpeg;base64,{img_b64}" class="foto-img">
+                    <div style="background:#2E7D32; color:white; padding:8px; text-align:center; font-weight:bold;">{item['titel']}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Deze knop staat EXACT over de div hierboven, maar is onzichtbaar door de CSS styling
-                if st.button(" ", key=f"invisible_btn_{i}"):
-                    if item.get('audio') and os.path.exists(item['audio']):
-                        st.session_state.audio_om_te_spelen = item['audio']
-                        st.rerun()
+                # 2. Audio speler direct eronder (Meest stabiel tegen door elkaar spelen)
+                if item.get('audio') and os.path.exists(item['audio']):
+                    st.audio(item['audio'])
 
     if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
