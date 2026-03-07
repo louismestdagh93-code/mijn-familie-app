@@ -35,42 +35,38 @@ if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
 else: album_data = []
 
-# --- 4. STYLING (GEEN SCROLL & KLIKBARE FOTO) ---
+# --- 4. STYLING (FOTO'S ALS KNOPPEN) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #FDFCF0; overflow: hidden; }
+    .stApp { background-color: #FDFCF0; }
     
-    /* Maak de foto's kleiner zodat ze in het scherm passen zonder scrollen */
-    .img-container {
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .img-container img {
-        max-height: 35vh; /* Foto neemt max 35% van de schermhoogte in */
+    /* Zorg dat de foto's niet te groot worden */
+    [data-testid="stImage"] img {
+        max-height: 250px;
         width: auto;
+        margin: 0 auto;
+        display: block;
         border-radius: 15px;
-        border: 5px solid #2E7D32;
-        cursor: pointer;
+    }
+
+    /* Maak de knop onzichtbaar maar zorg dat hij de hele ruimte vult */
+    .stButton button {
+        background-color: rgba(0,0,0,0) !important;
+        border: 2px solid #2E7D32 !important;
+        height: 320px !important;
+        width: 100% !important;
+        margin-top: -310px !important; /* Schuift de knop OMHOOG over de foto */
+        position: relative;
+        z-index: 100;
+        border-radius: 20px;
     }
     
-    /* Styling voor de naam onder de foto */
     .naam-label {
-        font-size: 24px !important;
+        text-align: center;
+        font-size: 24px;
         font-weight: bold;
         color: #2E7D32;
-        margin-top: -10px;
         margin-bottom: 20px;
-    }
-    
-    /* Verstop de standaard Streamlit knop look en maak hem onzichtbaar over de foto */
-    .stButton button {
-        height: 45vh !important; /* De knop is even hoog als de foto + label */
-        background-color: transparent !important;
-        color: transparent !important;
-        border: none !important;
-        position: absolute;
-        z-index: 10;
-        margin-top: -40vh; /* Schuif de onzichtbare knop over de foto */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -80,9 +76,9 @@ with st.sidebar:
     if st.button("Uitloggen"):
         st.session_state.ingelogd_familie = None
         st.rerun()
-    titel = st.text_input("Wie is dit?")
-    foto = st.file_uploader("Foto", type=['jpg','png','jpeg'])
-    audio = st.file_uploader("Geluid", type=['mp3','wav'])
+    titel = st.text_input("Naam persoon")
+    foto = st.file_uploader("Upload Foto", type=['jpg','png','jpeg'])
+    audio = st.file_uploader("Upload Geluid", type=['mp3','wav'])
     if st.button("Opslaan"):
         if foto and audio and titel:
             f_path = os.path.join(data_pad, foto.name)
@@ -99,13 +95,14 @@ st.markdown(f"<h1>Familie {familie_naam.capitalize()}</h1>", unsafe_allow_html=T
 cols = st.columns(2)
 for i, item in enumerate(album_data):
     with cols[i % 2]:
-        # Toon de afbeelding
-        st.markdown(f'<div class="img-container">', unsafe_allow_html=True)
+        # Stap 1: Toon de afbeelding
         st.image(item['foto'])
-        st.markdown(f'<p class="naam-label">{item["titel"]}</p></div>', unsafe_allow_html=True)
+        # Stap 2: Toon de naam
+        st.markdown(f'<p class="naam-label">{item["titel"]}</p>', unsafe_allow_html=True)
         
-        # De onzichtbare knop die over de afbeelding ligt
-        if st.button(f"Play_{i}", key=f"btn_{i}"):
+        # Stap 3: De knop die eroverheen ligt
+        # De tekst van de knop is leeg zodat je alleen de foto ziet
+        if st.button(" ", key=f"btn_{i}"):
             with open(item['audio'], "rb") as f:
                 b64 = base64.b64encode(f.read()).decode()
                 st.markdown(f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>', unsafe_allow_html=True)
