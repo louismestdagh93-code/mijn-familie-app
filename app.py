@@ -35,38 +35,50 @@ if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f: album_data = json.load(f)
 else: album_data = []
 
-# --- 4. STYLING (FOTO'S ALS KNOPPEN) ---
+# --- 4. STYLING (HET GEHEIM VAN DE KLIKBARE FOTO) ---
 st.markdown("""
     <style>
     .stApp { background-color: #FDFCF0; }
     
-    /* Zorg dat de foto's niet te groot worden */
-    [data-testid="stImage"] img {
-        max-height: 250px;
-        width: auto;
+    /* Container voor de foto en de knop */
+    .foto-box {
+        position: relative;
+        width: 100%;
+        max-width: 300px; /* Forceer een maximale breedte */
         margin: 0 auto;
-        display: block;
-        border-radius: 15px;
+        text-align: center;
     }
 
-    /* Maak de knop onzichtbaar maar zorg dat hij de hele ruimte vult */
-    .stButton button {
-        background-color: rgba(0,0,0,0) !important;
-        border: 2px solid #2E7D32 !important;
-        height: 320px !important;
-        width: 100% !important;
-        margin-top: -310px !important; /* Schuift de knop OMHOOG over de foto */
-        position: relative;
-        z-index: 100;
+    /* De foto zelf */
+    .foto-box img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
         border-radius: 20px;
+        border: 4px solid #2E7D32;
+    }
+
+    /* De knop die ALLES overdekt */
+    .stButton button {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 250px !important;
+        background-color: transparent !important;
+        color: transparent !important;
+        border: none !important;
+        z-index: 10;
+        cursor: pointer;
     }
     
+    /* De naam onder de foto */
     .naam-label {
-        text-align: center;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: bold;
         color: #2E7D32;
-        margin-bottom: 20px;
+        margin-top: 10px;
+        margin-bottom: 30px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -76,9 +88,9 @@ with st.sidebar:
     if st.button("Uitloggen"):
         st.session_state.ingelogd_familie = None
         st.rerun()
-    titel = st.text_input("Naam persoon")
-    foto = st.file_uploader("Upload Foto", type=['jpg','png','jpeg'])
-    audio = st.file_uploader("Upload Geluid", type=['mp3','wav'])
+    titel = st.text_input("Wie is dit?")
+    foto = st.file_uploader("Foto", type=['jpg','png','jpeg'])
+    audio = st.file_uploader("Geluid", type=['mp3','wav'])
     if st.button("Opslaan"):
         if foto and audio and titel:
             f_path = os.path.join(data_pad, foto.name)
@@ -95,13 +107,16 @@ st.markdown(f"<h1>Familie {familie_naam.capitalize()}</h1>", unsafe_allow_html=T
 cols = st.columns(2)
 for i, item in enumerate(album_data):
     with cols[i % 2]:
-        # Stap 1: Toon de afbeelding
-        st.image(item['foto'])
-        # Stap 2: Toon de naam
-        st.markdown(f'<p class="naam-label">{item["titel"]}</p>', unsafe_allow_html=True)
+        # We gebruiken een HTML div om de foto en de knop samen te binden
+        st.markdown(f'''
+            <div class="foto-box">
+                <img src="data:image/png;base64,{base64.b64encode(open(item['foto'], "rb").read()).decode()}">
+                <p class="naam-label">{item["titel"]}</p>
+            </div>
+        ''', unsafe_allow_html=True)
         
-        # Stap 3: De knop die eroverheen ligt
-        # De tekst van de knop is leeg zodat je alleen de foto ziet
+        # De knop staat hier direct onder in de code, 
+        # maar de CSS zet hem BOVENOP de foto-box div.
         if st.button(" ", key=f"btn_{i}"):
             with open(item['audio'], "rb") as f:
                 b64 = base64.b64encode(f.read()).decode()
