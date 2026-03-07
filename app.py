@@ -5,7 +5,19 @@ import base64
 from datetime import datetime, timedelta
 
 # --- 1. CONFIGURATIE ---
-st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
+if not is_nacht_actief:
+    if st.button("Zet op volledig scherm"):
+        st.components.v1.html(
+            """
+            <script>
+            var elem = window.parent.document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            }
+            </script>
+            """,
+            height=0,
+        )st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
 FAMILIES = {
     "jansen": "jansen2026",
