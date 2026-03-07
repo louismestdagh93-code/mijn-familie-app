@@ -31,47 +31,63 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 CFG_FILE = os.path.join(pad, "config.json")
 
-# Veilig laden van data
-album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
+# Laden van foto's
+album_data = []
+if os.path.exists(DB_FILE):
+    with open(DB_FILE, "r") as f: album_data = json.load(f)
 
-# VEILIGHEIDSCHECK: Als de key niet bestaat, gebruik standaardwaarden
+# Laden van nacht-instellingen met extra veiligheid
+config = {"n_start": 21, "n_eind": 7} # Standaardwaarden
 if os.path.exists(CFG_FILE):
     try:
-        config = json.load(open(CFG_FILE))
-        if "n_start" not in config: config = {"n_start": 21, "n_eind": 7}
+        with open(CFG_FILE, "r") as f:
+            saved_cfg = json.load(f)
+            # Alleen overschrijven als de juiste sleutels erin staan
+            if "n_start" in saved_cfg and "n_eind" in saved_cfg:
+                config = saved_cfg
     except:
-        config = {"n_start": 21, "n_eind": 7}
-else:
-    config = {"n_start": 21, "n_eind": 7}
+        pass # Bij fout blijven we bij de standaardwaarden
 
 # --- 4. NACHT CHECK ---
 def check_nacht():
+    # Tijd ophalen en 1 uur bijtellen voor Belgische tijd (UTC+1)
     nu = (datetime.utcnow() + timedelta(hours=1)).hour
-    s, e = config.get("n_start", 21), config.get("n_eind", 7)
-    return (nu >= s or nu < e) if s > e else (s <= nu < e)
+    s = config["n_start"]
+    e = config["n_eind"]
+    
+    if s > e: # Nacht gaat over middernacht heen (bijv. 21u tot 7u)
+        return nu >= s or nu < e
+    else: # Nacht is binnen de dag (bijv. 13u tot 16u om te testen)
+        return s <= nu < e
 
-nacht = check_nacht()
+is_nacht = check_nacht()
 
 # --- 5. STYLING ---
-bg = "#0A0E14" if nacht else "#FDFCF0"
-txt = "#FFFFFF" if nacht else "#2E7D32"
+bg = "#0A0E14" if is_nacht else "#FDFCF0"
+txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg}; }}
     .stButton button {{ width: 100%; background-color: #2E7D32; color: white; height: 60px; border-radius: 0 0 20px 20px; border: none; }}
     [data-testid="stImage"] img {{ border-radius: 20px 20px 0 0; border: 4px solid #2E7D32; height: 180px; object-fit: cover; }}
+    h1, h2, p {{ color: {txt}; text-align: center; }}
 </style>
 """, unsafe_allow_html=True)
 
 # --- 6. BEHEER (Zijbalk) ---
 with st.sidebar:
     st.header("⚙️ Instellingen")
-    config["n_start"] = st.slider("Start nacht", 0, 23, config.get("n_start", 21))
-    config["n_eind"] = st.slider("Einde nacht", 0, 23, config.get("n_eind", 7))
-    if st.button("Opslaan"):
-        json.dump(config, open(CFG_FILE, "w"))
+    # We gebruiken de veilige .get() methode om sliders te vullen
+    new_s = st.slider("Start nacht", 0, 23, config["n_start"])
+    new_e = st.slider("Einde nacht", 0, 23, config["n_eind"])
+    
+    if st.button("Tijden opslaan"):
+        config["n_start"] = new_s
+        config["n_eind"] = new_e
+        with open(CFG_FILE, "w") as f: json.dump(config, f)
         st.rerun()
+        
     st.divider()
     t = st.text_input("Naam")
     f = st.file_uploader("Foto")
@@ -82,20 +98,23 @@ with st.sidebar:
             with open(fp, "wb") as m: m.write(f.getbuffer())
             with open(ap, "wb") as m: m.write(a.getbuffer())
             album_data.append({"titel": t, "foto": fp, "audio": ap})
-            json.dump(album_data, open(DB_FILE, "w"))
+            with open(DB_FILE, "w") as m: json.dump(album_data, m)
             st.rerun()
 
 # --- 7. HET SCHERM ---
-if nacht:
-    st.markdown("<div style='text-align:center; padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2 style='color:white;'>Het is nacht.</h2><p style='color:gray;'>Slaap lekker!</p></div>", unsafe_allow_html=True)
+if is_nacht:
+    st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
 else:
-    if st.button("Volledig scherm"):
+    # Volledig scherm knop (alleen overdag)
+    if st.button("💻 Volledig scherm"):
         st.components.v1.html("<script>window.parent.document.documentElement.requestFullscreen();</script>", height=0)
-    st.markdown(f"<h1 style='text-align:center; color:#2E7D32;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+    
+    st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
     cols = st.columns(3)
     for i, item in enumerate(album_data):
         with cols[i % 3]:
             st.image(item['foto'])
             if st.button(f"Hoor {item['titel']}", key=f"b{i}"):
-                b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-                st.components.v1.html(f"<audio autoplay><source src='data:audio/mp3;base64,{b64}'></audio>", height=0)
+                with open(item['audio'], "rb") as audio_file:
+                    b64 = base64.b64encode(audio_file.read()).decode()
+                    st.components.v1.html(f"<audio autoplay><source src='data:audio/mp3;base64,{b64}'></audio>", height=0)
