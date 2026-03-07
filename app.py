@@ -44,7 +44,7 @@ def check_nacht():
 
 is_nacht = check_nacht()
 
-# --- 5. STYLING ---
+# --- 5. STYLING (ONZICHTBARE KNOPPEN) ---
 bg = "#0A0E14" if is_nacht else "#FDFCF0"
 txt = "#FFFFFF" if is_nacht else "#2E7D32"
 
@@ -54,14 +54,30 @@ st.markdown(f"""
     h1, h2, p {{ color: {txt}; text-align: center; font-family: sans-serif; }}
     #MainMenu, footer {{ visibility: hidden; }}
     
-    /* Maak de klik-knop onzichtbaar maar dekkend over de foto */
-    .stButton button {{
-        position: absolute;
+    /* De container waar de foto en de knop in zitten */
+    .foto-box {{
+        position: relative;
         width: 100%;
-        height: 240px;
-        z-index: 10;
+        height: 250px;
+    }}
+
+    /* De knop zelf: 100% dekkend maar onzichtbaar */
+    div.stButton > button {{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 250px !important;
         background: transparent !important;
         border: none !important;
+        color: transparent !important;
+        z-index: 10;
+        cursor: pointer;
+    }}
+    
+    /* Voorkom dat de knop een randje krijgt bij klikken */
+    div.stButton > button:focus {{
+        box-shadow: none !important;
         color: transparent !important;
     }}
 </style>
@@ -104,11 +120,9 @@ with st.sidebar:
 if is_nacht:
     st.markdown("<div style='padding-top:100px;'><h1 style='font-size:100px;'>🌙</h1><h2>Het is nacht.</h2><p>Slaap lekker!</p></div>", unsafe_allow_html=True)
 else:
-    # --- DE ONZICHTBARE SPELER ---
-    # Als er audio klaatstaat, speelt deze direct af
+    # De centrale audio-speler (onzichtbaar)
     if st.session_state.audio_om_te_spelen:
         st.audio(st.session_state.audio_om_te_spelen, autoplay=True)
-        # Reset na afspelen zodat hij niet blijft herhalen bij elke actie
         st.session_state.audio_om_te_spelen = None
 
     st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
@@ -117,17 +131,21 @@ else:
     for i, item in enumerate(album_data):
         if item.get('foto') and os.path.exists(item['foto']):
             with cols[i % 3]:
-                # Visuele kaart
+                # We maken een container voor de foto
                 img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
+                
+                # De 'foto-box' houdt de visuele kaart en de onzichtbare knop bij elkaar
                 st.markdown(f"""
-                <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white;">
-                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
-                    <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
+                <div class="foto-box">
+                    <div style="border:4px solid #2E7D32; border-radius:20px; overflow:hidden; background:white; pointer-events: none;">
+                        <img src="data:image/jpeg;base64,{img_b64}" style="width:100%; height:180px; object-fit:cover; display:block;">
+                        <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-size:18px;">{item['titel']}</div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Onzichtbare knop over de foto
-                if st.button("Speel", key=f"btn_{i}"):
+                # Deze knop staat EXACT over de div hierboven, maar is onzichtbaar door de CSS styling
+                if st.button(" ", key=f"invisible_btn_{i}"):
                     if item.get('audio') and os.path.exists(item['audio']):
                         st.session_state.audio_om_te_spelen = item['audio']
                         st.rerun()
