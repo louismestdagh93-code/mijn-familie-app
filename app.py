@@ -15,19 +15,64 @@ if not os.path.exists(pad): os.makedirs(pad)
 DB_FILE = os.path.join(pad, "database.json")
 album_data = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else []
 
-# Aangepast aan jouw screenshots (.png in plaats van .jpg)
 if not album_data:
     album_data = [
         {"titel": "Louis Mestdagh", "foto": f"{standaard_pad}/Louis.png", "audio": f"{standaard_pad}/louis.mp3"},
         {"titel": "Kimberly Dubois", "foto": f"{standaard_pad}/Kimberly.png", "audio": f"{standaard_pad}/kimberly.mp3"}
     ]
 
-# --- 3. STYLING ---
+# --- 3. SCHERMVULLENDE STYLING ---
 st.markdown("""
 <style>
+    /* Verwijder alle standaard Streamlit marges */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        max-width: 100% !important;
+    }
     .stApp { background-color: #FDFCF0; }
-    h1 { color: #2E7D32; text-align: center; font-family: sans-serif; }
-    .foto-card { border: 4px solid #2E7D32; border-radius: 20px; overflow: hidden; background: white; cursor: pointer; }
+    
+    h1 { 
+        color: #2E7D32; 
+        text-align: center; 
+        font-family: sans-serif; 
+        margin-bottom: 10px;
+        font-size: 2.5rem;
+    }
+
+    /* De kaarten aanpassen voor mobiel/tablet/PC */
+    .foto-card {
+        border: 4px solid #2E7D32;
+        border-radius: 20px;
+        overflow: hidden;
+        background: white;
+        cursor: pointer;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        display: block;
+    }
+
+    .naam-label {
+        background: #2E7D32;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        font-family: sans-serif;
+        font-size: 22px;
+    }
+
+    /* Verberg de Streamlit header en footer voor een 'App' gevoel */
+    header, footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -76,11 +121,13 @@ with st.sidebar:
 # --- 5. HET SCHERM ---
 st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
 
-cols = st.columns(3)
+# We gebruiken kolommen die op mobiel automatisch onder elkaar springen
+cols = st.columns([1, 1, 1] if len(album_data) >= 3 else len(album_data))
+
 for i, item in enumerate(album_data):
-    # We tonen de kaart alleen als de foto ECHT bestaat
     if item.get('foto') and os.path.exists(item['foto']):
-        with cols[i % 3]:
+        col_idx = i % 3 if len(album_data) >= 3 else i
+        with cols[col_idx]:
             img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
             audio_html = ""
             
@@ -93,8 +140,8 @@ for i, item in enumerate(album_data):
             
             st.components.v1.html(f"""
             <div onclick="document.getElementById('aud_{i}').play()" class="foto-card">
-                <img src="data:image/png;base64,{img_b64}" style="width:100%; height:250px; object-fit:cover; display:block;">
-                <div style="background:#2E7D32; color:white; padding:10px; text-align:center; font-weight:bold; font-family:sans-serif;">{item['titel']}</div>
+                <img src="data:image/png;base64,{img_b64}">
+                <div class="naam-label">{item['titel']}</div>
                 {audio_html}
             </div>
-            """, height=320)
+            """, height=400) # Hoogte iets vergroot voor betere weergave
