@@ -21,38 +21,57 @@ if not album_data:
         {"titel": "Kimberly Dubois", "foto": f"{standaard_pad}/Kimberly.png", "audio": f"{standaard_pad}/kimberly.mp3"}
     ]
 
-# --- 3. STYLING (GEFIKST) ---
+# --- 3. STYLING ---
 st.markdown("""
 <style>
-    .block-container {
-        padding: 1rem !important;
-    }
+    .block-container { padding: 1rem !important; }
     .stApp { background-color: #FDFCF0; }
     header, footer { visibility: hidden; }
 
-    /* Zorg dat de foto's niet te groot worden */
-    img {
+    /* De container voor de foto en de onzichtbare knop */
+    .photo-container {
+        position: relative;
         width: 100%;
-        border-radius: 15px 15px 0 0;
-        object-fit: cover;
-        height: 150px !important; /* Kortere hoogte zodat er meer op het scherm past */
-    }
-
-    .card {
-        border: 2px solid #2E7D32;
+        border: 3px solid #2E7D32;
         border-radius: 15px;
+        overflow: hidden;
         background-color: white;
-        text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
     }
 
-    .label {
+    .photo-container img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover; /* Zorgt dat foto het vak vult zonder witte randen */
+        display: block;
+    }
+
+    /* Styling voor de onzichtbare Streamlit knop */
+    .stButton button {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: transparent !important;
+        border: none !important;
+        color: transparent !important;
+        z-index: 10;
+        cursor: pointer;
+    }
+    
+    .stButton button:hover {
+        background-color: rgba(46, 125, 50, 0.1) !important;
+    }
+
+    .naam-label {
         background-color: #2E7D32;
         color: white;
-        padding: 5px;
+        padding: 10px;
+        text-align: center;
         font-weight: bold;
-        border-radius: 0 0 12px 12px;
-        font-size: 14px;
+        font-family: sans-serif;
+        font-size: 16px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -68,37 +87,35 @@ with st.sidebar:
         st.rerun()
 
 # --- 5. HET SCHERM ---
-st.markdown(f"<h1 style='text-align:center; color:#2E7D32;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align:center; color:#2E7D32; font-family:sans-serif;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
 
-# We dwingen hier 3 kolommen af voor laptop. 
-# Op mobiel schaalt Streamlit dit zelf naar 1 of 2 afhankelijk van de breedte.
+# Gebruik 3 kolommen voor laptop, Streamlit stapelt ze op mobiel
 cols = st.columns(3)
 
 for i, item in enumerate(album_data):
     if item.get('foto') and os.path.exists(item['foto']):
         with cols[i % 3]:
-            # Foto inladen
+            # Foto omzetten naar base64
             with open(item['foto'], "rb") as f:
                 img_b64 = base64.b64encode(f.read()).decode()
             
-            # HTML voor de kaart
-            audio_id = f"aud_{i}"
+            # De "kaarthouder" maken
+            st.markdown(f"""
+                <div class="photo-container">
+                    <img src="data:image/png;base64,{img_b64}">
+                    <div class="naam-label">{item['titel']}</div>
+                </div>
+            """, unsafe_allow_html=True)
             
-            # De kaart zelf als een knop
-            if st.button(f"Klik voor {item['titel']}", key=f"btn_{i}"):
+            # De onzichtbare knop die PRECIES over de kaart hierboven valt
+            if st.button("", key=f"btn_{i}"):
                 if item.get('audio') and os.path.exists(item['audio']):
                     with open(item['audio'], "rb") as a:
                         aud_b64 = base64.b64encode(a.read()).decode()
+                    # Audio afspelen via een onzichtbaar HTML element
                     st.components.v1.html(f"""
                         <audio autoplay>
                             <source src="data:audio/mp3;base64,{aud_b64}" type="audio/mp3">
                         </audio>
+                        <script>document.querySelector('audio').volume = {vol_float};</script>
                     """, height=0)
-
-            # De visuele kaart tonen
-            st.markdown(f"""
-                <div class="card">
-                    <img src="data:image/png;base64,{img_b64}">
-                    <div class="label">{item['titel']}</div>
-                </div>
-            """, unsafe_allow_html=True)
