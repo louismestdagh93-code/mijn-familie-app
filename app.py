@@ -4,12 +4,7 @@ import json
 import base64
 
 # --- 1. CONFIG ---
-# We forceren de zijbalk en de brede layout
-st.set_page_config(
-    page_title="Altijd Dichtbij", 
-    layout="wide", 
-    initial_sidebar_state="expanded" 
-)
+st.set_page_config(page_title="Altijd Dichtbij", layout="wide")
 
 # --- 2. DATA SETUP ---
 fam = "test"
@@ -26,19 +21,14 @@ if not album_data:
         {"titel": "Kimberly Dubois", "foto": f"{standaard_pad}/Kimberly.png", "audio": f"{standaard_pad}/kimberly.mp3"}
     ]
 
-# --- 3. STYLING (Extra sterk voor zijbalk) ---
+# --- 3. STYLING ---
 st.markdown("""
 <style>
-    /* Forceer de zijbalk om zichtbaar te zijn op mobiel */
-    [data-testid="stSidebar"] {
-        display: block !important;
-        visibility: visible !important;
-    }
-    
     .block-container { padding: 1rem !important; }
     .stApp { background-color: #FDFCF0; }
-    header, footer { visibility: hidden; }
+    header, footer { visibility: hidden !important; }
 
+    /* De fotokaart */
     .photo-container {
         position: relative;
         width: 100%;
@@ -46,6 +36,7 @@ st.markdown("""
         border-radius: 15px;
         overflow: hidden;
         background-color: white;
+        margin-bottom: 5px;
     }
 
     .photo-container img {
@@ -55,9 +46,20 @@ st.markdown("""
         display: block;
     }
 
-    /* Maak de onzichtbare knop over de hele kaart */
+    /* Naam label onder de foto */
+    .naam-label {
+        background-color: #2E7D32;
+        color: white;
+        padding: 8px;
+        text-align: center;
+        font-weight: bold;
+        font-family: sans-serif;
+        font-size: 16px;
+    }
+
+    /* Onzichtbare knop die de hele kaart bedekt */
     div.stButton > button {
-        height: 220px;
+        height: 230px;
         width: 100%;
         background: transparent !important;
         color: transparent !important;
@@ -66,44 +68,38 @@ st.markdown("""
         top: 0;
         z-index: 99;
     }
-
-    .naam-label {
-        background-color: #2E7D32;
-        color: white;
-        padding: 5px;
-        text-align: center;
-        font-weight: bold;
-        font-family: sans-serif;
-        font-size: 14px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. BEHEER (Zijbalk) ---
-# We gebruiken st.sidebar expliciet
-with st.sidebar:
-    st.title("⚙️ Menu")
-    vol_level = st.slider("Volume", 0, 100, 80)
+# --- 4. HET MENU (Bovenaan in plaats van zijbalk) ---
+st.markdown(f"<h1 style='text-align:center; color:#2E7D32; font-family:sans-serif;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+
+# Maak een horizontaal menu
+menu_col1, menu_col2, menu_col3 = st.columns([2, 2, 1])
+
+with menu_col1:
+    vol_level = st.slider("🔊 Volume", 0, 100, 80)
     vol_float = vol_level / 100
-    
-    st.divider()
-    if st.button("🗑️ Reset naar basis (Louis & Kimberly)"):
+
+with menu_col3:
+    st.write("") # Ruimte voor uitlijning
+    if st.button("🗑️ Reset Album"):
         if os.path.exists(DB_FILE): os.remove(DB_FILE)
         st.rerun()
 
-# --- 5. HET SCHERM ---
-st.markdown(f"<h1 style='text-align:center; color:#2E7D32;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+st.divider()
 
-# Layout met kolommen
+# --- 5. HET ALBUM ---
 cols = st.columns(3)
 
 for i, item in enumerate(album_data):
     if item.get('foto') and os.path.exists(item['foto']):
         with cols[i % 3]:
+            # Foto inladen
             with open(item['foto'], "rb") as f:
                 img_b64 = base64.b64encode(f.read()).decode()
             
-            # De kaart
+            # De kaart tonen
             st.markdown(f"""
                 <div class="photo-container">
                     <img src="data:image/png;base64,{img_b64}">
@@ -111,7 +107,7 @@ for i, item in enumerate(album_data):
                 </div>
             """, unsafe_allow_html=True)
             
-            # De audio-knop
+            # De klik-actie (onzichtbare knop)
             if st.button(f"Play_{i}", key=f"btn_{i}"):
                 if item.get('audio') and os.path.exists(item['audio']):
                     with open(item['audio'], "rb") as a:
