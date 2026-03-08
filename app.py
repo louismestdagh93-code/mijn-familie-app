@@ -4,7 +4,12 @@ import json
 import base64
 
 # --- 1. CONFIG ---
-st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
+# We zetten initial_sidebar_state op "expanded" zodat het zijbalkje direct openstaat
+st.set_page_config(
+    page_title="Altijd Dichtbij", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
 # --- 2. DATA SETUP ---
 fam = "test"
@@ -28,7 +33,6 @@ st.markdown("""
     .stApp { background-color: #FDFCF0; }
     header, footer { visibility: hidden; }
 
-    /* De container voor de foto en de onzichtbare knop */
     .photo-container {
         position: relative;
         width: 100%;
@@ -36,38 +40,41 @@ st.markdown("""
         border-radius: 15px;
         overflow: hidden;
         background-color: white;
-        margin-bottom: 20px;
+        margin-bottom: 5px;
     }
 
     .photo-container img {
         width: 100%;
         height: 200px;
-        object-fit: cover; /* Zorgt dat foto het vak vult zonder witte randen */
+        object-fit: cover;
         display: block;
     }
 
-    /* Styling voor de onzichtbare Streamlit knop */
-    .stButton button {
+    /* Onzichtbare knop styling */
+    div.stButton > button:first-child {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 100%;
-        background-color: transparent !important;
-        border: none !important;
-        color: transparent !important;
+        height: 235px; /* Hoogte van foto + label ongeveer */
+        background: transparent;
+        border: none;
+        color: transparent;
         z-index: 10;
-        cursor: pointer;
+        margin: 0;
+        padding: 0;
     }
     
-    .stButton button:hover {
-        background-color: rgba(46, 125, 50, 0.1) !important;
+    div.stButton > button:first-child:hover {
+        background: rgba(46, 125, 50, 0.05);
+        border: none;
+        color: transparent;
     }
 
     .naam-label {
         background-color: #2E7D32;
         color: white;
-        padding: 10px;
+        padding: 8px;
         text-align: center;
         font-weight: bold;
         font-family: sans-serif;
@@ -81,25 +88,29 @@ with st.sidebar:
     st.header("⚙️ Instellingen")
     vol_level = st.slider("Volume", 0, 100, 80)
     vol_float = vol_level / 100
+    
     st.divider()
+    st.subheader("Beheer")
     if st.button("🗑️ Reset naar basis"):
         if os.path.exists(DB_FILE): os.remove(DB_FILE)
         st.rerun()
+    
+    st.info("Klik op een foto om het geluid te horen.")
 
 # --- 5. HET SCHERM ---
 st.markdown(f"<h1 style='text-align:center; color:#2E7D32; font-family:sans-serif;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
 
-# Gebruik 3 kolommen voor laptop, Streamlit stapelt ze op mobiel
+# We gebruiken kolommen voor de layout
 cols = st.columns(3)
 
 for i, item in enumerate(album_data):
     if item.get('foto') and os.path.exists(item['foto']):
         with cols[i % 3]:
-            # Foto omzetten naar base64
+            # Foto inladen
             with open(item['foto'], "rb") as f:
                 img_b64 = base64.b64encode(f.read()).decode()
             
-            # De "kaarthouder" maken
+            # De kaart tonen
             st.markdown(f"""
                 <div class="photo-container">
                     <img src="data:image/png;base64,{img_b64}">
@@ -107,12 +118,11 @@ for i, item in enumerate(album_data):
                 </div>
             """, unsafe_allow_html=True)
             
-            # De onzichtbare knop die PRECIES over de kaart hierboven valt
-            if st.button("", key=f"btn_{i}"):
+            # De onzichtbare knop die de audio triggert
+            if st.button("Play", key=f"btn_{i}"):
                 if item.get('audio') and os.path.exists(item['audio']):
                     with open(item['audio'], "rb") as a:
                         aud_b64 = base64.b64encode(a.read()).decode()
-                    # Audio afspelen via een onzichtbaar HTML element
                     st.components.v1.html(f"""
                         <audio autoplay>
                             <source src="data:audio/mp3;base64,{aud_b64}" type="audio/mp3">
