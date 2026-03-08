@@ -21,61 +21,49 @@ if not album_data:
         {"titel": "Kimberly Dubois", "foto": f"{standaard_pad}/Kimberly.png", "audio": f"{standaard_pad}/kimberly.mp3"}
     ]
 
-# --- 3. ULTRA-RESPONSIVE STYLING ---
-st.markdown(f"""
+# --- 3. STYLING ---
+# We gebruiken hier geen f-string om de SyntaxError met accolades te voorkomen
+st.markdown("""
 <style>
-    /* Verwijder alle Streamlit marges voor maximale schermvulling */
-    .block-container {{
+    .block-container {
         padding: 10px !important;
         max-width: 100% !important;
-    }}
-    .stApp {{ background-color: #FDFCF0; }}
-    header, footer {{ visibility: hidden; }}
+    }
+    .stApp { background-color: #FDFCF0; }
+    header, footer { visibility: hidden; }
 
-    h1 {{ 
-        color: #2E7D32; 
-        text-align: center; 
-        font-family: sans-serif; 
-        font-size: 1.5rem; 
-        margin-bottom: 15px; 
-    }}
+    .album-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        padding: 5px;
+    }
 
-    /* Het raster voor de foto's */
-    .album-grid {{
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        justify-content: center;
-    }}
-
-    /* De fotokaart zelf */
-    .foto-card {{
-        flex: 1 1 300px; /* Basisbreedte 300px, mag groeien en krimpen */
-        max-width: 450px;
-        border: 3px solid #2E7D32;
-        border-radius: 15px;
+    .foto-card {
+        border: 2px solid #2E7D32;
+        border-radius: 12px;
         overflow: hidden;
         background: white;
         cursor: pointer;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }}
+        display: flex;
+        flex-direction: column;
+    }
     
-    .foto-card img {{
+    .foto-card img {
         width: 100%;
-        height: 250px;
+        height: 180px;
         object-fit: cover;
-        display: block;
     }
 
-    .naam-label {{
+    .naam-label {
         background: #2E7D32;
         color: white;
-        padding: 12px;
+        padding: 8px;
         text-align: center;
         font-weight: bold;
         font-family: sans-serif;
-        font-size: 18px;
-    }}
+        font-size: 14px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -85,13 +73,13 @@ with st.sidebar:
     vol_level = st.slider("Volume", 0, 100, 80)
     vol_float = vol_level / 100
     st.divider()
-    beheer_optie = st.radio("Wat wil je doen?", ["Bestaande aanpassen", "Nieuw persoon toevoegen"])
+    beheer_optie = st.radio("Actie", ["Aanpassen", "Nieuw"])
     
-    if beheer_optie == "Bestaande aanpassen":
+    if beheer_optie == "Aanpassen":
         if album_data:
-            t = st.selectbox("Kies persoon", [p["titel"] for p in album_data])
-            f = st.file_uploader("Nieuwe Foto")
-            a = st.file_uploader("Nieuw Geluid")
+            t = st.selectbox("Persoon", [p["titel"] for p in album_data])
+            f = st.file_uploader("Foto")
+            a = st.file_uploader("Geluid")
             if st.button("Bijwerken"):
                 idx = next((i for i, item in enumerate(album_data) if item["titel"] == t), None)
                 if idx is not None:
@@ -121,30 +109,29 @@ with st.sidebar:
         st.rerun()
 
 # --- 5. HET SCHERM ---
-st.markdown(f"<h1>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align:center; color:#2E7D32;'>Familie {fam.capitalize()}</h1>", unsafe_allow_html=True)
 
-# Begin van het raster
-html_grid = '<div class="album-grid">'
-
+# Grid opbouw
+cards_html = ""
 for i, item in enumerate(album_data):
     if item.get('foto') and os.path.exists(item['foto']):
-        img_b64 = base64.b64encode(open(item['foto'], "rb").read()).decode()
-        audio_html = ""
+        with open(item['foto'], "rb") as f:
+            img_b64 = base64.b64encode(f.read()).decode()
         
+        audio_tag = ""
         if item.get('audio') and os.path.exists(item['audio']):
-            aud_b64 = base64.b64encode(open(item['audio'], "rb").read()).decode()
-            audio_html = f'<audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio><script>document.getElementById("aud_{i}").volume = {vol_float};</script>'
+            with open(item['audio'], "rb") as a:
+                aud_b64 = base64.b64encode(a.read()).decode()
+            audio_tag = f'<audio id="aud_{i}" src="data:audio/mp3;base64,{aud_b64}"></audio>'
+            audio_tag += f'<script>document.getElementById("aud_{i}").volume = {vol_float};</script>'
         
-        # Voeg elke kaart toe aan het raster
-        html_grid += f"""
+        cards_html += f"""
         <div onclick="document.getElementById('aud_{i}').play()" class="foto-card">
             <img src="data:image/png;base64,{img_b64}">
             <div class="naam-label">{item['titel']}</div>
-            {audio_html}
+            {audio_tag}
         </div>
         """
 
-html_grid += '</div>' # Einde van het raster
-
-# Toon alles in één keer
-st.components.v1.html(html_grid, height=1000, scrolling=True)
+full_html = f'<div class="album-grid">{cards_html}</div>'
+st.components.v1.html(full_html, height=800, scrolling=True)
