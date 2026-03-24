@@ -35,7 +35,7 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (FIX VOOR ZWART-OP-ZWART & CONTRAST)
+# 4. CSS (VOLLEDIGE FIX VOOR DONKERE ELEMENTEN)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -47,14 +47,22 @@ st.markdown("""
         font-weight: 800 !important; 
     }
     
-    /* FIX VOOR INVOERVELDEN (NIET MEER ZWART OP ZWART) */
-    input, textarea, [data-baseweb="input"] {
+    /* FIX VOOR ALLE INPUTS EN CONTAINERS (UPLOAD EN AUDIO) */
+    input, textarea, [data-baseweb="input"], [data-testid="stFileUploader"], [data-testid="stAudioInput"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 2px solid #1A3317 !important;
         border-radius: 10px !important;
     }
 
+    /* SPECIFIEKE FIX VOOR DE DRAG & DROP ZONE TEKST */
+    [data-testid="stFileUploader"] section {
+        background-color: #FFFFFF !important;
+    }
+    [data-testid="stFileUploader"] section div div {
+        color: #000000 !important;
+    }
+    
     /* TABS STYLING */
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
