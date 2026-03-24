@@ -35,7 +35,7 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (RODE KNOPPEN & CONTRAST)
+# 4. CSS (GROENE KNOPPEN & CONTRAST)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -81,10 +81,10 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* DE RODE KNOPPEN (START EN VERSTUUR) */
+    /* DE GROENE KNOPPEN (START EN VERSTUUR) */
     .stButton > button {
-        background-color: #FF0000 !important; /* Rood */
-        color: #FFFFFF !important; /* Witte tekst voor leesbaarheid */
+        background-color: #2E7D32 !important; /* Terug naar groen */
+        color: #FFFFFF !important; 
         border-radius: 20px !important;
         font-size: 26px !important;
         font-weight: 900 !important;
@@ -94,9 +94,9 @@ st.markdown("""
         text-transform: uppercase;
     }
     
-    /* Hover effect: iets donkerder rood */
+    /* Hover effect */
     .stButton > button:hover {
-        background-color: #CC0000 !important;
+        background-color: #1B5E20 !important;
     }
 </style>
 """, unsafe_allow_html=True)
