@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. HULPFUNCTIES
-HOUDBAARHEID_DAGEN = 3
+HOUDBAARHEID_DAGEN = 7
 
 def get_file_path(family_id):
     return f"data_{family_id}.json"
