@@ -35,7 +35,7 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (GROENE KNOPPEN & CONTRAST)
+# 4. CSS (GROENE ACCENTEN EN CONTRAST)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -57,10 +57,18 @@ st.markdown("""
         border-radius: 10px !important;
     }
     
-    /* UPLOAD EN AUDIO ZONES */
-    [data-testid="stFileUploader"], [data-testid="stAudioInput"] {
+    /* UPLOAD ZONE */
+    [data-testid="stFileUploader"] {
         background-color: #FFFFFF !important;
         border: 3px solid #000000 !important;
+        border-radius: 15px !important;
+        padding: 10px !important;
+    }
+
+    /* --- NIEUW: AUDIO INPUT ZONE IN HET GROEN --- */
+    [data-testid="stAudioInput"] {
+        background-color: #E8F5E9 !important; /* Lichtgroene achtergrond */
+        border: 3px solid #1A3317 !important; /* Donkergroene rand */
         border-radius: 15px !important;
         padding: 10px !important;
     }
@@ -81,9 +89,9 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* DE GROENE KNOPPEN (START EN VERSTUUR) */
+    /* DE GROENE HOOFDKNOPPEN (START EN VERSTUUR) */
     .stButton > button {
-        background-color: #2E7D32 !important; /* Terug naar groen */
+        background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         border-radius: 20px !important;
         font-size: 26px !important;
@@ -97,6 +105,14 @@ st.markdown("""
     /* Hover effect */
     .stButton > button:hover {
         background-color: #1B5E20 !important;
+    }
+
+    /* --- NIEUW: MANAGE APP KNOP IN HET GROEN --- */
+    .viewerBadge_container__1QS1n {
+        background-color: #2E7D32 !important; /* Groen */
+        color: #FFFFFF !important; /* Witte tekst */
+        border-radius: 10px !important;
+        padding: 5px 10px !important;
     }
 </style>
 """, unsafe_allow_html=True)
