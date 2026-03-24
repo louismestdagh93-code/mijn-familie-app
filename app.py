@@ -1,13 +1,13 @@
-          import streamlit as st
+import streamlit as st
 import base64
 
-# 1. CONFIG (MOET ALS EERSTE REGEL)
+# 1. CONFIG (Moet absoluut op regel 1)
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. VOLLEDIGE CSS (Layout, Tabs en Klik-Kaarten)
+# 2. CSS VOOR LAYOUT & TABS
 st.markdown("""
 <style>
-    /* 1. Verwijder alle marges voor een tablet-vullend scherm */
+    /* Verwijder marges voor volledig scherm */
     .block-container {
         padding: 0rem !important;
         max-width: 100% !important;
@@ -15,18 +15,18 @@ st.markdown("""
     .stApp { background-color: #FDFCF0; }
     header, footer, #MainMenu {visibility: hidden;}
 
-    /* 2. De Bovenste Balk (Tabs) - Zeer duidelijk maken */
+    /* Grote, duidelijke tabs bovenaan */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 2px;
-        background-color: #2E7D32; 
+        gap: 0px;
+        background-color: #2E7D32;
         padding: 0px;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 80px; /* Lekker groot voor vingers */
+        height: 80px;
         background-color: #2E7D32;
         color: white !important;
+        font-size: 1.4rem !important;
         font-weight: bold;
-        font-size: 1.5rem !important;
         flex-grow: 1;
         border: 1px solid #1B5E20;
     }
@@ -35,118 +35,99 @@ st.markdown("""
         color: #2E7D32 !important;
     }
 
-    /* 3. De Fotokaarten Grid */
-    .photo-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr); /* 2 grote fotos naast elkaar op tablet */
-        gap: 20px;
-        padding: 20px;
-    }
-
-    .photo-card {
+    /* Container voor de klikbare foto */
+    .photo-container {
         position: relative;
-        background: white;
         border: 5px solid #2E7D32;
-        border-radius: 25px;
+        border-radius: 20px;
         overflow: hidden;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        height: 500px;
+        margin: 10px;
+        background: white;
     }
     
-    .photo-card img {
-        width: 100%;
-        height: 400px;
-        object-fit: cover;
-    }
-
-    .name-label {
+    .name-tag {
         background: #2E7D32;
         color: white;
         text-align: center;
-        padding: 20px;
-        font-size: 24px;
+        padding: 15px;
+        font-size: 22px;
         font-weight: bold;
     }
 
-    /* 4. De Onzichtbare Knop die alles klikbaar maakt */
+    /* De onzichtbare knop over de volledige kolom */
     div.stButton > button {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 500px; /* Zelfde als kaart */
+        height: 450px; /* Hoogte van de kaart */
         background: transparent !important;
         color: transparent !important;
         border: none !important;
         z-index: 10;
-        cursor: pointer;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DATABASE INITIALISATIE
+# 3. INITIALISATIE
 if 'album' not in st.session_state:
     st.session_state.album = []
 
-# 4. AUDIO FUNCTIE
-def play_audio(audio_bytes):
-    b64 = base64.b64encode(audio_bytes).decode()
-    audio_html = f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>'
-    st.components.v1.html(audio_html, height=0)
-
-# 5. DE TABS
+# 4. TABS
 tab_oma, tab_familie, tab_admin = st.tabs(["👵 OMA PORTAAL", "📤 FAMILIE UPLOAD", "⚙️ ADMIN"])
 
 # --- TAB 1: OMA PORTAAL ---
 with tab_oma:
     if not st.session_state.album:
-        st.markdown("<h2 style='text-align:center; padding:50px;'>Het album is nog leeg.</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align:center; margin-top:50px;'>Het album is nog leeg.</h2>", unsafe_allow_html=True)
     else:
-        # We maken handmatig een grid met kolommen
+        # Raster van 2 kolommen voor stabiliteit op tablet
         cols = st.columns(2)
         for i, item in enumerate(st.session_state.album):
             with cols[i % 2]:
-                # Visual van de kaart
-                st.markdown(f"""
-                <div class="photo-card">
-                    <img src="data:image/jpeg;base64,{base64.b64encode(item['foto']).decode()}">
-                    <div class="name-label">{item['naam']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # De onzichtbare knop die de audio triggert
-                if st.button(f"Play_{i}", key=f"btn_{i}"):
-                    play_audio(item['audio'])
+                # We gebruiken een container om alles bij elkaar te houden
+                with st.container():
+                    # De visuele kaart
+                    st.markdown('<div class="photo-container">', unsafe_allow_html=True)
+                    st.image(item['foto'], use_container_width=True)
+                    st.markdown(f'<div class="name-tag">{item["naam"]}</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # De knop die eroverheen ligt
+                    if st.button(f"Play_{i}", key=f"btn_{i}"):
+                        # Audio afspelen
+                        b64_audio = base64.b64encode(item['audio']).decode()
+                        audio_html = f'<audio autoplay><source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3"></audio>'
+                        st.components.v1.html(audio_html, height=0)
 
 # --- TAB 2: FAMILIE UPLOAD ---
 with tab_familie:
     st.markdown("<div style='padding:20px;'>", unsafe_allow_html=True)
-    st.header("Stuur een foto naar Oma")
+    st.header("Stuur een herinnering")
     with st.form("upload_form", clear_on_submit=True):
-        naam = st.text_input("Naam op de foto")
-        foto = st.file_uploader("Kies een foto", type=['jpg', 'jpeg', 'png'])
-        audio = st.file_uploader("Voeg geluid toe (.mp3)", type=['mp3', 'wav'])
+        naam_input = st.text_input("Naam")
+        foto_input = st.file_uploader("Kies een foto", type=['jpg', 'jpeg', 'png'])
+        audio_input = st.file_uploader("Kies een geluid (.mp3)", type=['mp3', 'wav'])
         
-        if st.form_submit_button("🚀 Versturen naar Tablet"):
-            if naam and foto and audio:
+        if st.form_submit_button("🚀 Uploaden"):
+            if naam_input and foto_input and audio_input:
                 st.session_state.album.append({
-                    "naam": naam,
-                    "foto": foto.read(),
-                    "audio": audio.read()
+                    "naam": naam_input,
+                    "foto": foto_input.read(),
+                    "audio": audio_input.read()
                 })
-                st.success("Foto succesvol toegevoegd!")
+                st.success("Gelukt!")
                 st.rerun()
             else:
-                st.error("Vul alle velden in aub.")
+                st.error("Vul alle velden in.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- TAB 3: ADMIN ---
 with tab_admin:
     st.markdown("<div style='padding:20px;'>", unsafe_allow_html=True)
-    code = st.text_input("Beheerderscode", type="password")
-    if code == "STARTUP2026":
-        st.write(f"Aantal items: {len(st.session_state.album)}")
-        if st.button("🗑️ Wis Album"):
+    pw = st.text_input("Code", type="password")
+    if pw == "STARTUP2026":
+        if st.button("🗑️ Wis het hele album"):
             st.session_state.album = []
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
