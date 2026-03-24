@@ -35,29 +35,32 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (VERBETERDE LEESBAARHEID & CONTRAST)
+# 4. CSS (FIX VOOR ZWART-OP-ZWART & CONTRAST)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* FORCEER PIKZWARTE TEKST VOOR ALLE TITELS EN LABELS */
+    /* ALGEMENE TEKST ZWART */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
     }
     
-    /* Zorg dat de witte titels in de screenshots nu zichtbaar zijn */
-    .stForm h2, .stMarkdown h1 { color: #000000 !important; }
+    /* FIX VOOR INVOERVELDEN (NIET MEER ZWART OP ZWART) */
+    input, textarea, [data-baseweb="input"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #1A3317 !important;
+        border-radius: 10px !important;
+    }
 
-    .block-container { padding: 0rem !important; max-width: 100% !important; }
-    
-    /* Tabs styling - Donkergroene balk met witte letters */
+    /* TABS STYLING */
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
     .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; border-radius: 10px; }
 
-    /* Foto Kaarten */
+    /* FOTO KAARTEN */
     .photo-card { 
         border-radius: 25px; 
         background: #000000; 
@@ -69,17 +72,17 @@ st.markdown("""
     
     .name-tag { 
         background: #1A3317; 
-        color: #FFFFFF !important; /* Naam moet wit blijven op de groene balk */
+        color: #FFFFFF !important; 
         padding: 20px; 
         font-size: 35px; 
         text-align: center; 
         font-weight: bold; 
     }
 
-    /* DE AUDIO KNOP - FIX VOOR ONLEESBARE TEKST */
+    /* AUDIO KNOP STYLING */
     .stButton > button {
-        background-color: #2E7D32 !important; /* Felgroene knop */
-        color: #FFFFFF !important; /* KRITIEK: Witte tekst op de knop */
+        background-color: #2E7D32 !important; 
+        color: #FFFFFF !important; 
         border-radius: 20px !important;
         font-size: 26px !important;
         font-weight: 900 !important;
@@ -89,7 +92,7 @@ st.markdown("""
         width: 100%;
     }
 
-    /* View badge styling in beheer */
+    /* VIEW BADGE IN BEHEER */
     .view-badge {
         background-color: #E8F5E9;
         padding: 8px 15px;
@@ -128,7 +131,7 @@ else:
             d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
             if nu - d < timedelta(days=HOUDBAARHEID_DAGEN):
                 album_oma.append(item)
-                item['views'] += 1 # Teller blijft werken
+                item['views'] += 1
                 updated = True
         
         if updated:
@@ -157,7 +160,6 @@ else:
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
-                    # Blijft insert(0) gebruiken zodat nieuwe foto's linksboven komen
                     full_album.insert(0, {
                         "naam": n, 
                         "foto": f_b64, 
@@ -182,7 +184,6 @@ else:
             with st.container(border=True):
                 c1, c2, c3 = st.columns([1, 3, 1])
                 c1.image(f"data:image/jpeg;base64,{item['foto']}", width=100)
-                # Views zijn hier weer zichtbaar
                 c2.markdown(f"""
                     **Van:** {item['naam']}<br>
                     **Gezonden op:** {item['datum']}<br>
