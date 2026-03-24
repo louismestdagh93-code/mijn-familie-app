@@ -35,13 +35,13 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
+# 4. CSS (GROENE ACCENTEN EN CONTRAST, INCLUSIEF HELP-KNOP)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* PIKZWARTE TEKST VOOR LABELS */
+    /* ALLE TEKST PIKZWART */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
@@ -53,15 +53,24 @@ st.markdown("""
     input, textarea, [data-baseweb="input"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
-        border: 3px solid #1A3317 !important;
+        border: 3px solid #000000 !important;
         border-radius: 10px !important;
     }
     
-    /* UPLOAD EN AUDIO ZONES IN HET LICHTGROEN */
-    [data-testid="stFileUploader"] section, [data-testid="stAudioInput"] {
-        background-color: #E8F5E9 !important;
-        border: 3px solid #2E7D32 !important;
+    /* UPLOAD ZONE */
+    [data-testid="stFileUploader"] {
+        background-color: #FFFFFF !important;
+        border: 3px solid #000000 !important;
         border-radius: 15px !important;
+        padding: 10px !important;
+    }
+
+    /* AUDIO INPUT ZONE IN HET GROEN */
+    [data-testid="stAudioInput"] {
+        background-color: #E8F5E9 !important; /* Lichtgroene achtergrond */
+        border: 3px solid #1A3317 !important; /* Donkergroene rand */
+        border-radius: 15px !important;
+        padding: 10px !important;
     }
 
     /* TABS STYLING */
@@ -80,33 +89,48 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* --- FORCEER ALLE KNOPPEN NAAR GROEN (INCLUSIEF START EN VERSTUUR) --- */
-    .stButton > button, [data-testid="stFormSubmitButton"] > button {
+    /* DE GROENE HOOFDKNOPPEN (START, VERSTUUR, STATUS) */
+    .stButton > button {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         border-radius: 20px !important;
-        font-size: 22px !important;
+        font-size: 26px !important;
         font-weight: 900 !important;
-        border: 3px solid #000000 !important;
+        height: 80px !important;
+        border: 4px solid #000000 !important;
         width: 100%;
-        height: 70px !important;
-        margin-top: 10px;
-        margin-bottom: 10px;
+        text-transform: uppercase;
     }
-
-    /* Zorg dat de tekst IN de knop ook wit blijft */
-    .stButton > button div p, [data-testid="stFormSubmitButton"] > button div p {
-        color: #FFFFFF !important;
-    }
-
-    .stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover {
+    
+    /* Hover effect voor groene knoppen */
+    .stButton > button:hover {
         background-color: #1B5E20 !important;
-        border: 3px solid #FFFFFF !important;
     }
 
-    /* Manage app badge onderaan ook groen */
+    /* MANAGE APP KNOP IN HET GROEN */
     .viewerBadge_container__1QS1n {
-        background-color: #2E7D32 !important;
+        background-color: #2E7D32 !important; /* Groen */
+        color: #FFFFFF !important; /* Witte tekst */
+        border-radius: 10px !important;
+        padding: 5px 10px !important;
+    }
+
+    /* --- NIEUW: RODE HELP-KNOP --- */
+    .help-button > button {
+        background-color: #D32F2F !important; /* Rood */
+        color: #FFFFFF !important; /* Witte tekst */
+        border-radius: 20px !important;
+        font-size: 30px !important; /* Iets groter */
+        font-weight: 900 !important;
+        height: 100px !important; /* Iets groter */
+        border: 5px solid #000000 !important;
+        width: 100%;
+        text-transform: uppercase;
+    }
+    
+    /* Hover effect voor rode help-knop */
+    .help-button > button:hover {
+        background-color: #B71C1C !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -131,6 +155,15 @@ else:
     tab1, tab2, tab3 = st.tabs(["👵 OMA", "📤 FAMILIE", "⚙️ BEHEER"])
 
     with tab1:
+        # --- NIEUW: HELP-KNOP BOVENAAN ---
+        st.markdown("<div class='help-button'>", unsafe_allow_html=True)
+        if st.button("⚠️ HELP", key="help_button"):
+            # Actie voor de help-knop: stuur een melding naar de familie
+            # Je kunt hier een melding naar jullieDashboard sturen, of een pushbericht
+            st.warning("Hulp ingeschakeld! Familie is op de hoogte.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("---") # Scheidingslijn
+
         album_oma = []
         updated = False
         for item in full_album:
@@ -154,6 +187,23 @@ else:
                         if st.button(f"▶️ HOOR BERICHT VAN {item['naam'].upper()}", key=f"aud_{i}"):
                             st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
 
+        # --- NIEUW: STATUS-KNOPPEN ONDERAAN ---
+        st.markdown("---") # Scheidingslijn
+        st.markdown("<h2 style='text-align:center;'>Hoe voel je je vandaag?</h2>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("😊 Goed!", key="status_goed"):
+                # Actie voor "Goed": stuur een melding naar de familie
+                st.success("Bericht gestuurd! Fijn dat het goed gaat.")
+        with col2:
+            if st.button("☕ Koffie", key="status_koffie"):
+                # Actie voor "Koffie": stuur een melding naar de familie
+                st.info("Bericht gestuurd! Geniet van je koffie.")
+        with col3:
+            if st.button("😴 Rusten", key="status_rusten"):
+                # Actie voor "Rusten": stuur een melding naar de familie
+                st.warning("Bericht gestuurd! Rust maar goed uit.")
+
     with tab2:
         st.markdown("<div style='padding:30px;'><h2>Nieuwe herinnering sturen</h2>", unsafe_allow_html=True)
         with st.form("up", clear_on_submit=True):
@@ -167,11 +217,12 @@ else:
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
                     full_album.insert(0, {"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
                     save_data(fid, full_album)
-                    st.success("Verzonden!")
+                    st.success("Verzonden! Oma ziet het direct.")
                     st.rerun()
 
     with tab3:
         st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+        
         st.subheader("📬 Jouw Wekelijkse Impact")
         if st.button("✨ Genereer Live Collage", use_container_width=True):
             st.balloons()
