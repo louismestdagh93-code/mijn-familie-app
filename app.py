@@ -35,13 +35,12 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (MAXIMAAL CONTRAST & LEESBAARHEID)
+# 4. CSS (MAXIMAAL CONTRAST + VIEW TELLER STYLING)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* FORCEER PIKZWARTE TEKST VOOR CONTRAST */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
@@ -49,12 +48,10 @@ st.markdown("""
     
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     
-    /* Tabs styling - Donkergroen met wit */
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
     .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; border-radius: 10px; }
 
-    /* Foto Kaarten - Zwart frame */
     .photo-card { 
         border-radius: 25px; 
         background: #000000; 
@@ -64,7 +61,6 @@ st.markdown("""
         border: 6px solid #1A3317;
     }
     
-    /* Naam onder de foto - Groot en wit op groen */
     .name-tag { 
         background: #1A3317; 
         color: #FFFFFF !important; 
@@ -74,7 +70,6 @@ st.markdown("""
         font-weight: bold; 
     }
 
-    /* DE AUDIO KNOP - FELGROEN MET WITTE TEKST (GEEN GROEN OP ZWART MEER!) */
     .stButton > button {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
@@ -84,11 +79,16 @@ st.markdown("""
         height: 80px !important;
         border: 4px solid #000000 !important;
         margin-top: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
     
-    /* Input velden groter voor familie */
-    input { font-size: 1.5rem !important; }
+    /* Styling voor de view-badges in het beheer */
+    .view-badge {
+        background-color: #E8F5E9;
+        padding: 5px 15px;
+        border-radius: 10px;
+        border: 2px solid #2E7D32;
+        display: inline-block;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,20 +112,29 @@ else:
     tab1, tab2, tab3 = st.tabs(["👵 OMA", "📤 FAMILIE", "⚙️ BEHEER"])
 
     with tab1:
-        album_oma = [item for item in full_album if (nu - datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")) < timedelta(days=HOUDBAARHEID_DAGEN)]
+        album_oma = []
+        updated = False
+        for item in full_album:
+            d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
+            if nu - d < timedelta(days=HOUDBAARHEID_DAGEN):
+                album_oma.append(item)
+                # Tel een view op als oma de pagina laadt
+                item['views'] += 1
+                updated = True
         
+        if updated:
+            save_data(fid, full_album)
+
         if not album_oma:
             st.markdown("<h2 style='text-align:center; padding:100px;'>Wachten op een nieuw berichtje...</h2>", unsafe_allow_html=True)
         else:
             cols = st.columns(2)
             for i, item in enumerate(album_oma):
                 with cols[i % 2]:
-                    # Foto tonen
                     st.markdown(f'<div class="photo-card"><img src="data:image/jpeg;base64,{item["foto"]}" style="width:100%; height:450px; object-fit:cover;"><div class="name-tag">{item["naam"].upper()}</div></div>', unsafe_allow_html=True)
-                    
-                    # Audio knop
                     if item.get('audio'):
                         if st.button(f"🔊 HOOR BERICHT VAN {item['naam'].upper()}", key=f"aud_{i}"):
+                            # Extra view tellen als er echt geluisterd wordt
                             item['views'] += 1
                             save_data(fid, full_album)
                             st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
@@ -140,8 +149,6 @@ else:
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
-                    
-                    # Nieuwe foto linksboven (index 0)
                     full_album.insert(0, {
                         "naam": n, 
                         "foto": f_b64, 
@@ -149,21 +156,35 @@ else:
                         "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), 
                         "views": 0
                     })
-                    
                     save_data(fid, full_album)
                     st.success("Verzonden! Oma ziet het direct.")
                     st.rerun()
 
     with tab3:
-        st.header("⚙️ Instellingen")
+        st.header("⚙️ Beheer & Statistieken")
+        
+        # UITLOGGEN
         if st.button("🚪 Uitloggen", use_container_width=True):
             st.query_params.clear()
             st.session_state.logged_in = False
             st.rerun()
         
         st.divider()
+        st.subheader("Overzicht Foto's")
+        
         for idx, item in enumerate(full_album):
-            c1, c2 = st.columns([3,1])
-            c1.write(f"🖼️ {item['naam']} ({item['views']} views)")
-            if c2.button("Wis", key=f"del_{idx}"):
-                full_album.pop(idx); save_data(fid, full_album); st.rerun()
+            with st.container(border=True):
+                c1, c2, c3 = st.columns([1, 3, 1])
+                # Miniatuur van de foto
+                c1.image(f"data:image/jpeg;base64,{item['foto']}", width=100)
+                # Info over de views
+                c2.markdown(f"""
+                    **Van:** {item['naam']}<br>
+                    **Gezonden op:** {item['datum']}<br>
+                    <div class="view-badge">👁️ **{item['views']} keer** bekeken door oma</div>
+                """, unsafe_allow_html=True)
+                # Verwijderknop
+                if c3.button("🗑️ Wis", key=f"del_{idx}"):
+                    full_album.pop(idx)
+                    save_data(fid, full_album)
+                    st.rerun()
