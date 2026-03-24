@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 # 1. CONFIG
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. DATA FUNCTIES (Met View-ondersteuning)
+# 2. DATA FUNCTIES
 HOUDBAARHEID_DAGEN = 3
 
 def get_file_path(family_id):
@@ -19,7 +19,6 @@ def load_data(family_id):
         with open(path, "r") as f:
             try:
                 data = json.load(f)
-                # Zorg dat elke foto een 'views' veld heeft
                 for item in data:
                     if 'views' not in item: item['views'] = 0
                 return data
@@ -30,13 +29,13 @@ def save_data(family_id, data):
     with open(get_file_path(family_id), "w") as f:
         json.dump(data, f)
 
-# 3. LOGIN
+# 3. LOGIN LOGICA
 if 'logged_in' not in st.session_state:
     if "family" in st.query_params:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (Luxe Look)
+# 4. CSS
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -68,17 +67,16 @@ else:
     tab1, tab2, tab3 = st.tabs(["👵 OMA", "📤 FAMILIE", "⚙️ BEHEER"])
 
     with tab1:
-        # Filteren & Views Tellen
         album_oma = []
         updated = False
         for item in full_album:
             d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
             if nu - d < timedelta(days=HOUDBAARHEID_DAGEN):
                 album_oma.append(item)
-                item['views'] += 1 # HIER GEBEURT DE TRACKING
+                item['views'] += 1 
                 updated = True
         
-        if updated: save_data(fid, full_album) # Sla de nieuwe views op
+        if updated: save_data(fid, full_album)
 
         if not album_oma:
             st.markdown("<h2 style='text-align:center; padding:100px; color:#888;'>Wachten op een berichtje...</h2>", unsafe_allow_html=True)
@@ -116,20 +114,15 @@ else:
             st.balloons()
             with st.container(border=True):
                 st.markdown(f"<h2 style='text-align:center; color:#4A6741;'>Weekoverzicht: Familie {fid}</h2>", unsafe_allow_html=True)
-                
                 recenten = [i for i in full_album if (nu - datetime.strptime(i['datum'], "%Y-%m-%d %H:%M:%S")).days < 7]
-                
-                if not recenten:
-                    st.info("Nog geen foto's deze week.")
+                if not recenten: st.info("Nog geen foto's deze week.")
                 else:
                     grid = st.columns(3)
                     for idx, item in enumerate(recenten):
                         with grid[idx % 3]:
                             st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
                             st.markdown(f"<p style='text-align:center; font-size:12px;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
-                    
-                    totaal_views = sum(i['views'] for i in recenten)
-                    st.success(f"Geweldig! Oma heeft deze week al {totaal_views} keer jullie momenten herbeleefd.")
+                    st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
 
         st.markdown("---")
         st.subheader("Beheer Archief")
@@ -138,3 +131,10 @@ else:
             ca.write(f"🖼️ {item['naam']} ({item['views']} views)")
             if cb.button("Wis", key=f"del_{idx}"):
                 full_album.pop(idx); save_data(fid, full_album); st.rerun()
+
+        # DE TERUGGEKEERDE UITLOGKNOP
+        st.markdown("---")
+        if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
+            st.query_params.clear()
+            st.session_state.logged_in = False
+            st.rerun()
