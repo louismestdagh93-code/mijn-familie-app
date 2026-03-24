@@ -35,11 +35,19 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS
+# 4. CSS verbetering
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
-    .stApp { background-color: #F7F9F2; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .stApp { 
+        background-color: #F7F9F2; 
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        color: #4A6741 !important;  /* DIT VOEGT DONKERGROENE TEKST TOE */
+    }
+    /* Zorg dat labels boven inputvelden ook donker zijn */
+    label, p, h1, h2, h3 { 
+        color: #4A6741 !important; 
+    }
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     .stTabs [data-baseweb="tab-list"] { background-color: #4A6741; padding: 15px 0; display: flex; justify-content: center; gap: 30px; }
     .stTabs [data-baseweb="tab"] { height: 80px; min-width: 200px; color: #E8EDDF !important; font-size: 1.5rem !important; font-weight: 700; border-radius: 20px; border: none !important; background-color: rgba(255,255,255,0.1); }
