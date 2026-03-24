@@ -44,40 +44,54 @@ if 'logged_in' not in st.session_state:
     else:
         st.session_state.logged_in = False
 
-# 4. PREMIUM CSS (Design & Fout-onderdrukking)
-st.markdown("""
 <style>
-    /* Verberg Streamlit foutmeldingen voor een rustige ervaring */
+    /* Verberg standaard Streamlit rommel */
     .element-container:has(.stException), .stAlert { display: none !important; }
     header, footer, #MainMenu { visibility: hidden; }
     
     .stApp { background-color: #F7F9F2; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-    .block-container { padding: 0rem !important; }
+    .block-container { padding: 0rem !important; max-width: 100% !important; }
 
-    /* Luxe Tab-balk */
-    .stTabs [data-baseweb="tab-list"] { background-color: #4A6741; padding: 10px 0; }
+    /* DE NIEUWE PREMIUM BALK */
+    .stTabs [data-baseweb="tab-list"] { 
+        background-color: #4A6741; 
+        padding: 15px 0; 
+        display: flex; 
+        justify-content: center; /* Zet de tabs in het midden */
+        gap: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
     .stTabs [data-baseweb="tab"] { 
-        height: 70px; color: #E8EDDF !important; font-size: 1.3rem !important; 
-        font-weight: 500; border-radius: 15px; margin: 0 10px;
+        height: 80px; 
+        min-width: 180px; /* Maak de tabs breder */
+        color: #E8EDDF !important; 
+        font-size: 1.6rem !important; /* Grotere letters */
+        font-weight: 600; 
+        border-radius: 20px; 
+        border: none !important;
+        background-color: rgba(255,255,255,0.05);
     }
-    .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #4A6741 !important; }
 
-    /* Fotokaarten met zachte schaduw */
+    /* Geselecteerde tab krijgt meer contrast */
+    .stTabs [aria-selected="true"] { 
+        background-color: #F7F9F2 !important; 
+        color: #4A6741 !important; 
+        transform: scale(1.05); /* Maakt de actieve tab net iets groter */
+    }
+
+    /* Fotokaarten & Knoppen */
     .photo-card { 
-        border-radius: 30px; background: #000; margin: 20px; 
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1); overflow: hidden;
+        border-radius: 35px; background: #000; margin: 25px; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15); overflow: hidden;
     }
-    .name-tag { background: #4A6741; color: white; padding: 18px; font-size: 26px; text-align: center; letter-spacing: 1px; }
+    .name-tag { background: #4A6741; color: white; padding: 20px; font-size: 28px; text-align: center; font-weight: bold; }
     
-    /* Luxe Knoppen */
     .stButton>button {
-        border-radius: 20px; border: 2px solid #4A6741; color: #4A6741;
-        font-weight: bold; padding: 10px; transition: 0.3s;
+        border-radius: 25px; border: 3px solid #4A6741; color: #4A6741;
+        font-size: 1.2rem; font-weight: bold; padding: 15px; background: white;
     }
-    .stButton>button:hover { background-color: #4A6741; color: white; }
 </style>
-""", unsafe_allow_html=True)
-
 # 5. UI FLOW
 if not st.session_state.logged_in:
     st.markdown("<div style='padding:100px; text-align:center; color:#4A6741;'><h1>🌿 Altijd Dichtbij</h1><p>Verbinden door herinneringen</p>", unsafe_allow_html=True)
