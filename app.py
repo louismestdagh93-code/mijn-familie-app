@@ -157,22 +157,24 @@ else:
                     st.rerun()
 
     with tab_admin:
-        st.markdown("<div style='padding:40px;'>", unsafe_allow_html=True)
-        st.subheader(f"Instellingen voor Familie {fid}")
-        st.info(f"Foto's worden na {HOUDBAARHEID_DAGEN} dagen automatisch gewist.")
-        
-        for idx, item in enumerate(album):
-            c1, c2 = st.columns([5, 1])
-            c1.write(f"🖼️ {item['naam']} ({item.get('datum', 'Onbekende datum')})")
-            # Unieke key voor verwijderknop
-            d_key = f"delete_{fid}_{item['naam']}_{idx}"
-            if c2.button("🗑️ Wis", key=d_key):
-                album.pop(idx)
-                save_family_data(fid, album)
-                st.rerun()
-        
         st.markdown("---")
-        if st.button("🚪 Uitloggen op dit apparaat", key="final_logout"):
-            st.query_params.clear()
-            st.session_state.logged_in = False
-            st.rerun()
+        st.subheader("📬 Wekelijkse Update")
+        st.write("Wil je zien wat de familie deze week heeft gedeeld?")
+        
+        if st.button("👁️ Bekijk Weekoverzicht (Concept)", key="gen_preview"):
+            st.balloons() # Een leuk effect voor de feestvreugde
+            
+            # De 'Collage' Preview
+            st.markdown(f"""
+            <div style="background-color: white; padding: 30px; border-radius: 20px; border: 2px solid #4A6741;">
+                <h2 style="text-align: center; color: #4A6741;">🌿 Weekoverzicht: Familie {fid}</h2>
+                <p style="text-align: center; color: #666;">Periode: { (datetime.now() - timedelta(days=7)).strftime('%d %b') } - { datetime.now().strftime('%d %b %Y') }</p>
+                <hr>
+                <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px;">
+                    <div><h1 style="margin:0;">{len(album_oma)}</h1><p>Nieuwe foto's</p></div>
+                    <div><h1 style="margin:0;">{sum(1 for i in album_oma if i.get('audio'))}</h1><p>Berichten</p></div>
+                </div>
+                <p style="text-align: center; font-style: italic;">"De familie is deze week heel actief geweest. Oma heeft genoten!"</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.info("In de volledige versie wordt dit elke zondag automatisch naar je e-mail gestuurd.")
