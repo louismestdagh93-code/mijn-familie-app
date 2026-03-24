@@ -3,12 +3,8 @@ import base64
 import json
 import os
 
-# 1. CONFIG (Optimale instellingen voor Kiosk/Tablet)
-st.set_page_config(
-    page_title="Altijd Dichtbij", 
-    layout="wide", 
-    initial_sidebar_state="collapsed"
-)
+# 1. CONFIG
+st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. OPSLAG LOGICA
 def get_file_path(family_id):
@@ -31,32 +27,28 @@ if 'logged_in' not in st.session_state:
 
 st.markdown("""
 <style>
-    /* Forceer volledig scherm layout */
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     .stApp { background-color: #FDFCF0; }
     header, footer, #MainMenu {visibility: hidden;}
 
-    /* Grote Tabs voor Tablet */
     .stTabs [data-baseweb="tab-list"] { background-color: #2E7D32; padding: 0px; }
     .stTabs [data-baseweb="tab"] {
-        height: 85px;
+        height: 80px;
         color: white !important;
-        font-size: 1.5rem !important;
+        font-size: 1.4rem !important;
         font-weight: bold;
         flex-grow: 1;
     }
     .stTabs [aria-selected="true"] { background-color: #FDFCF0 !important; color: #2E7D32 !important; }
 
-    /* Fotokaart Grid */
     .photo-card {
-        border: 5px solid #2E7D32;
-        border-radius: 25px;
+        border: 4px solid #2E7D32;
+        border-radius: 20px;
         background: white;
-        margin: 15px;
+        margin: 10px;
         overflow: hidden;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
-    .name-tag { background: #2E7D32; color: white; padding: 20px; font-size: 26px; font-weight: bold; text-align: center; }
+    .name-tag { background: #2E7D32; color: white; padding: 15px; font-size: 22px; font-weight: bold; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,43 +81,51 @@ else:
                 with cols[i % 2]:
                     st.markdown(f"""
                     <div class="photo-card">
-                        <img src="data:image/jpeg;base64,{item['foto']}" style="width:100%; height:400px; object-fit:cover;">
+                        <img src="data:image/jpeg;base64,{item['foto']}" style="width:100%; height:350px; object-fit:cover;">
                         <div class="name-tag">{item['naam']}</div>
                     </div>
                     """, unsafe_allow_html=True)
-                    
-                    # Alleen knop tonen als er audio is
                     if item.get('audio'):
                         if st.button(f"🔊 Luister naar {item['naam']}", key=f"btn_{i}", use_container_width=True):
                             audio_html = f'<audio autoplay="true"><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio><script>document.querySelector("audio").play();</script>'
                             st.components.v1.html(audio_html, height=0)
 
-    # --- FAMILIE UPLOAD (MET RECORDER) ---
+    # --- UPLOAD ---
     with tab_fam:
-        st.markdown("<div style='padding:30px;'>", unsafe_allow_html=True)
-        st.header("Nieuwe herinnering")
+        st.markdown("<div style='padding:20px;'>", unsafe_allow_html=True)
         with st.form("upload", clear_on_submit=True):
-            n = st.text_input("Wie staat er op de foto?")
-            f = st.file_uploader("Kies foto", type=['jpg', 'jpeg', 'png'])
-            
-            st.write("🎤 **Spreek je bericht in:**")
-            audio_data = st.audio_input("Klik op de microfoon om op te nemen")
-            
-            if st.form_submit_button("🚀 Nu naar Oma sturen"):
+            n = st.text_input("Naam")
+            f = st.file_uploader("Foto", type=['jpg', 'png', 'jpeg'])
+            audio_data = st.audio_input("Spreek bericht in (optioneel)")
+            if st.form_submit_button("🚀 Naar Oma sturen"):
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
-                    a_b64 = None
-                    if audio_data:
-                        a_b64 = base64.b64encode(audio_data.read()).decode()
-                    
+                    a_b64 = base64.b64encode(audio_data.read()).decode() if audio_data else None
                     album.append({"naam": n, "foto": f_b64, "audio": a_b64})
                     save_family_data(fid, album)
-                    st.success("Verzonden!")
                     st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- ADMIN ---
+    # --- ADMIN (INDIVIDUEEL VERWIJDEREN) ---
     with tab_admin:
+        st.markdown("<div style='padding:20px;'>", unsafe_allow_html=True)
+        st.subheader(f"Beheer album: {fid}")
+        
+        if not album:
+            st.write("Het album is leeg.")
+        else:
+            for idx, item in enumerate(album):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.write(f"🖼️ **{item['naam']}** ({'met geluid' if item['audio'] else 'zonder geluid'})")
+                with col2:
+                    # De individuele verwijderknop
+                    if st.button(f"🗑️ Verwijder", key=f"del_{idx}"):
+                        album.pop(idx) # Verwijder item uit lijst
+                        save_family_data(fid, album) # Sla aangepaste lijst op
+                        st.rerun() # Ververs scherm
+        
+        st.markdown("---")
         if st.button("🚪 Uitloggen"):
             st.session_state.logged_in = False
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
