@@ -1,102 +1,82 @@
 import streamlit as st
 import base64
 
-# --- CONFIGURATIE ---
+# --- 1. CONFIGURATIE ---
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide")
 
-# --- SIMULATIE DATABASE (Straks SQL) ---
+# --- 2. DE DATABASE (Tijdelijk geheugen) ---
+# LET OP: Als je de code aanpast of herstart, moet je de familie opnieuw aanmaken via Admin.
 if 'db' not in st.session_state:
-    st.session_state.db = {
-        "families": {
-            "IEPER01": {"naam": "Familie Peeters", "berichten": []},
-            "GENT02": {"naam": "Familie Janssens", "berichten": []}
-        }
-    }
+    st.session_state.db = {}
 
-# --- HELPER FUNCTIES ---
+# --- 3. AUDIO HELPER ---
 def get_audio_html(audio_bytes):
-    """Genereert HTML om audio automatisch af te spelen bij een klik."""
     audio_base64 = base64.b64encode(audio_bytes).decode()
     return f'<audio autoplay src="data:audio/wav;base64,{audio_base64}">'
 
-# --- SIDEBAR INLOG ---
-st.sidebar.title("🔐 Inloggen")
-role = st.sidebar.selectbox("Wie ben je?", ["Oma/Opa", "Familie", "Admin (Team)"])
-access_code = st.sidebar.text_input("Toegangscode", type="password").upper()
+# --- 4. NAVIGATIE IN DE ZIJBALK ---
+st.sidebar.title("📸 Altijd Dichtbij")
+keuze = st.sidebar.selectbox("Ga naar:", ["Oma/Opa Portaal", "Familie Portaal", "Admin Dashboard"])
+code = st.sidebar.text_input("Voer je code in:", type="password").upper()
 
-# --- 1. OMA / OPA PORTAAL (De 'Kijk-App') ---
-if role == "Oma/Opa":
-    if access_code in st.session_state.db["families"]:
-        familie = st.session_state.db["families"][access_code]
+# --- 5. OMA / OPA PORTAAL ---
+if keuze == "Oma/Opa Portaal":
+    if code in st.session_state.db:
+        fami = st.session_state.db[code]
         st.title(f"Hallo! 👋")
-        st.subheader(f"Berichten van {familie['naam']}")
+        st.subheader(f"Berichten van {fami['naam']}")
         
-        if not familie['berichten']:
-            st.info("Nog geen foto's ontvangen. Vraag de familie om iets te sturen!")
+        if not fami['berichten']:
+            st.info("Nog geen foto's aanwezig. Vraag de familie om iets te sturen!")
         else:
-            # We tonen de foto's in een grid
             cols = st.columns(3)
-            for idx, msg in enumerate(familie['berichten']):
+            for idx, msg in enumerate(fami['berichten']):
                 with cols[idx % 3]:
-                    # De 'knop' is de afbeelding
-                    if st.button(f"Klik op mij! 📸", key=f"btn_{idx}"):
-                        # Als er op de knop/foto geklikt wordt, spelen we geluid af
+                    if st.button(f"Hoor bericht! 🔊", key=f"snd_{idx}"):
                         st.markdown(get_audio_html(msg['audio']), unsafe_allow_html=True)
-                        st.success("Audio wordt afgespeeld...")
-                    
                     st.image(msg['foto'], use_container_width=True)
-                    st.caption(f"Gestuurd op: {msg['datum']}")
+                    st.caption(f"Verzonden op: {msg['datum']}")
     else:
-        st.warning("Voer een geldige code in om je foto's te zien.")
+        st.warning("Voer een geldige familiecode in om de foto's te zien.")
 
-# --- 2. FAMILIE PORTAAL (De 'Upload-App') ---
-elif role == "Familie":
-    if access_code in st.session_state.db["families"]:
-        familie = st.session_state.db["families"][access_code]
-        st.title(f"Portaal voor {familie['naam']}")
+# --- 6. FAMILIE PORTAAL ---
+elif keuze == "Familie Portaal":
+    if code in st.session_state.db:
+        st.title(f"Portaal voor Familie {st.session_state.db[code]['naam']}")
         
-        with st.expander("➕ Nieuw bericht sturen", expanded=True):
-            uploaded_photo = st.file_uploader("Kies een foto", type=['jpg', 'png', 'jpeg'])
-            uploaded_audio = st.file_uploader("Neem geluid op of kies bestand", type=['mp3', 'wav', 'm4a'])
-            
-            if st.button("Verstuur naar Oma"):
-                if uploaded_photo and uploaded_audio:
-                    nieuw_bericht = {
-                        "foto": uploaded_photo.read(),
-                        "audio": uploaded_audio.read(),
-                        "datum": "24 Maart 2026" # Straks automatische tijd
-                    }
-                    st.session_state.db["families"][access_code]["berichten"].insert(0, nieuw_bericht)
-                    st.success("Verstuurd! Oma kan het nu bekijken.")
-                else:
-                    st.error("Upload zowel een foto als een audiobericht.")
+        uploaded_img = st.file_uploader("Kies een foto", type=['jpg', 'png', 'jpeg'])
+        uploaded_aud = st.file_uploader("Kies een geluidsbestand", type=['mp3', 'wav', 'm4a'])
+        
+        if st.button("Verstuur naar de tablet"):
+            if uploaded_img and uploaded_aud:
+                nieuw_bericht = {
+                    "foto": uploaded_img.read(),
+                    "audio": uploaded_aud.read(),
+                    "datum": "Vandaag"
+                }
+                st.session_state.db[code]["berichten"].insert(0, nieuw_bericht)
+                st.success("Verzonden! Bekijk het nu in het Oma Portaal.")
+            else:
+                st.error("Selecteer zowel een foto als een geluidsbestand.")
     else:
-        st.error("Code niet herkend.")
+        st.error("Deze code bestaat nog niet. Maak de familie eerst aan in het Admin Dashboard.")
 
-# --- 3. ADMIN PORTAAL (Voor jou en je 2 vrienden) ---
-elif role == "Admin (Team)":
-    if access_code == "STARTUP2026": # Je geheime admin code
-        st.title("🚀 Admin Dashboard")
-        st.write("Beheer hier je vzw / startup.")
+# --- 7. ADMIN DASHBOARD ---
+elif keuze == "Admin Dashboard":
+    # Gebruik hier je vaste admin-wachtwoord: IEPER2026
+    if code == "IEPER2026":
+        st.title("🚀 Admin Beheer")
         
-        # Statistieken
-        col1, col2 = st.columns(2)
-        col1.metric("Totaal Families", len(st.session_state.db["families"]))
+        st.subheader("Nieuwe Familie Toevoegen")
+        nieuwe_naam = st.text_input("Naam van de familie (bijv. Peeters)")
+        nieuwe_code = st.text_input("Kies een simpele code (bijv. OMA1)").upper()
         
-        # Familiebeheer
-        st.subheader("Geregistreerde Families")
-        for code, data in st.session_state.db["families"].items():
-            with st.container():
-                st.write(f"**{data['naam']}** (Code: {code})")
-                st.write(f"Aantal berichten: {len(data['berichten'])}")
-                st.divider()
+        if st.button("Registreer Familie"):
+            if nieuwe_naam and nieuwe_code:
+                st.session_state.db[nieuwe_code] = {"naam": nieuwe_naam, "berichten": []}
+                st.success(f"Familie {nieuwe_naam} is aangemaakt met code {nieuwe_code}!")
         
-        # Nieuwe familie toevoegen
-        with st.expander("Nieuwe Familie Toevoegen"):
-            new_name = st.text_input("Naam Familie")
-            new_code = st.text_input("Nieuwe Code (bijv. IEPER02)").upper()
-            if st.button("Voeg toe"):
-                st.session_state.db["families"][new_code] = {"naam": new_name, "berichten": []}
-                st.success(f"{new_name} toegevoegd!")
+        st.divider()
+        st.write("Geregistreerde codes:", list(st.session_state.db.keys()))
     else:
-        st.error("Admin toegang geweigerd.")
+        st.info("Voer het admin-wachtwoord in (IEPER2026) om families te beheren.")
