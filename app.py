@@ -35,13 +35,13 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (GROENE ACCENTEN EN CONTRAST)
+# 4. CSS (ALLES IN HET GROEN VOOR ZICHTBAARHEID)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* ALLE TEKST PIKZWART */
+    /* PIKZWARTE TEKST VOOR LABELS */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
@@ -53,24 +53,15 @@ st.markdown("""
     input, textarea, [data-baseweb="input"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
-        border: 3px solid #000000 !important;
+        border: 3px solid #1A3317 !important;
         border-radius: 10px !important;
     }
     
-    /* UPLOAD ZONE */
-    [data-testid="stFileUploader"] {
-        background-color: #FFFFFF !important;
-        border: 3px solid #000000 !important;
+    /* UPLOAD EN AUDIO ZONES IN HET LICHTGROEN */
+    [data-testid="stFileUploader"] section, [data-testid="stAudioInput"] {
+        background-color: #E8F5E9 !important;
+        border: 3px solid #2E7D32 !important;
         border-radius: 15px !important;
-        padding: 10px !important;
-    }
-
-    /* --- NIEUW: AUDIO INPUT ZONE IN HET GROEN --- */
-    [data-testid="stAudioInput"] {
-        background-color: #E8F5E9 !important; /* Lichtgroene achtergrond */
-        border: 3px solid #1A3317 !important; /* Donkergroene rand */
-        border-radius: 15px !important;
-        padding: 10px !important;
     }
 
     /* TABS STYLING */
@@ -89,30 +80,33 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* DE GROENE HOOFDKNOPPEN (START EN VERSTUUR) */
+    /* --- FORCEER ALLE KNOPPEN NAAR GROEN --- */
+    /* Dit pakt elke button in de app: Start, Verstuur, Luister, Wis, Collage, etc. */
     .stButton > button {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         border-radius: 20px !important;
-        font-size: 26px !important;
+        font-size: 22px !important;
         font-weight: 900 !important;
-        height: 80px !important;
-        border: 4px solid #000000 !important;
+        border: 3px solid #000000 !important;
         width: 100%;
-        text-transform: uppercase;
-    }
-    
-    /* Hover effect */
-    .stButton > button:hover {
-        background-color: #1B5E20 !important;
+        margin-top: 10px;
+        margin-bottom: 10px;
     }
 
-    /* --- NIEUW: MANAGE APP KNOP IN HET GROEN --- */
+    /* Zorg dat de tekst IN de knop ook wit blijft bij Streamlit updates */
+    .stButton > button div p {
+        color: #FFFFFF !important;
+    }
+
+    .stButton > button:hover {
+        background-color: #1B5E20 !important;
+        border: 3px solid #FFFFFF !important;
+    }
+
+    /* Manage app badge onderaan ook groen */
     .viewerBadge_container__1QS1n {
-        background-color: #2E7D32 !important; /* Groen */
-        color: #FFFFFF !important; /* Witte tekst */
-        border-radius: 10px !important;
-        padding: 5px 10px !important;
+        background-color: #2E7D32 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -173,12 +167,11 @@ else:
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
                     full_album.insert(0, {"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
                     save_data(fid, full_album)
-                    st.success("Verzonden! Oma ziet het direct.")
+                    st.success("Verzonden!")
                     st.rerun()
 
     with tab3:
         st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
-        
         st.subheader("📬 Jouw Wekelijkse Impact")
         if st.button("✨ Genereer Live Collage", use_container_width=True):
             st.balloons()
