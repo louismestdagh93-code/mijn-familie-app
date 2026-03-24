@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import base64
 import json
 import os
@@ -35,23 +35,29 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (MAXIMAAL CONTRAST + VIEW TELLER STYLING)
+# 4. CSS (VERBETERDE LEESBAARHEID & CONTRAST)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
+    /* FORCEER PIKZWARTE TEKST VOOR ALLE TITELS EN LABELS */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
     }
     
+    /* Zorg dat de witte titels in de screenshots nu zichtbaar zijn */
+    .stForm h2, .stMarkdown h1 { color: #000000 !important; }
+
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     
+    /* Tabs styling - Donkergroene balk met witte letters */
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
     .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; border-radius: 10px; }
 
+    /* Foto Kaarten */
     .photo-card { 
         border-radius: 25px; 
         background: #000000; 
@@ -63,31 +69,35 @@ st.markdown("""
     
     .name-tag { 
         background: #1A3317; 
-        color: #FFFFFF !important; 
+        color: #FFFFFF !important; /* Naam moet wit blijven op de groene balk */
         padding: 20px; 
         font-size: 35px; 
         text-align: center; 
         font-weight: bold; 
     }
 
+    /* DE AUDIO KNOP - FIX VOOR ONLEESBARE TEKST */
     .stButton > button {
-        background-color: #2E7D32 !important; 
-        color: #FFFFFF !important; 
+        background-color: #2E7D32 !important; /* Felgroene knop */
+        color: #FFFFFF !important; /* KRITIEK: Witte tekst op de knop */
         border-radius: 20px !important;
         font-size: 26px !important;
         font-weight: 900 !important;
         height: 80px !important;
         border: 4px solid #000000 !important;
         margin-top: 15px;
+        width: 100%;
     }
-    
-    /* Styling voor de view-badges in het beheer */
+
+    /* View badge styling in beheer */
     .view-badge {
         background-color: #E8F5E9;
-        padding: 5px 15px;
+        padding: 8px 15px;
         border-radius: 10px;
         border: 2px solid #2E7D32;
+        color: #000000 !important;
         display: inline-block;
+        margin-top: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -118,8 +128,7 @@ else:
             d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
             if nu - d < timedelta(days=HOUDBAARHEID_DAGEN):
                 album_oma.append(item)
-                # Tel een view op als oma de pagina laadt
-                item['views'] += 1
+                item['views'] += 1 # Teller blijft werken
                 updated = True
         
         if updated:
@@ -134,7 +143,6 @@ else:
                     st.markdown(f'<div class="photo-card"><img src="data:image/jpeg;base64,{item["foto"]}" style="width:100%; height:450px; object-fit:cover;"><div class="name-tag">{item["naam"].upper()}</div></div>', unsafe_allow_html=True)
                     if item.get('audio'):
                         if st.button(f"🔊 HOOR BERICHT VAN {item['naam'].upper()}", key=f"aud_{i}"):
-                            # Extra view tellen als er echt geluisterd wordt
                             item['views'] += 1
                             save_data(fid, full_album)
                             st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
@@ -149,6 +157,7 @@ else:
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
+                    # Blijft insert(0) gebruiken zodat nieuwe foto's linksboven komen
                     full_album.insert(0, {
                         "naam": n, 
                         "foto": f_b64, 
@@ -162,8 +171,6 @@ else:
 
     with tab3:
         st.header("⚙️ Beheer & Statistieken")
-        
-        # UITLOGGEN
         if st.button("🚪 Uitloggen", use_container_width=True):
             st.query_params.clear()
             st.session_state.logged_in = False
@@ -171,19 +178,16 @@ else:
         
         st.divider()
         st.subheader("Overzicht Foto's")
-        
         for idx, item in enumerate(full_album):
             with st.container(border=True):
                 c1, c2, c3 = st.columns([1, 3, 1])
-                # Miniatuur van de foto
                 c1.image(f"data:image/jpeg;base64,{item['foto']}", width=100)
-                # Info over de views
+                # Views zijn hier weer zichtbaar
                 c2.markdown(f"""
                     **Van:** {item['naam']}<br>
                     **Gezonden op:** {item['datum']}<br>
-                    <div class="view-badge">👁️ **{item['views']} keer** bekeken door oma</div>
+                    <div class="view-badge">👁️ **{item['views']} keer** bekeken</div>
                 """, unsafe_allow_html=True)
-                # Verwijderknop
                 if c3.button("🗑️ Wis", key=f"del_{idx}"):
                     full_album.pop(idx)
                     save_data(fid, full_album)
