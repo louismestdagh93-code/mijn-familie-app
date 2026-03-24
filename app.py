@@ -35,103 +35,30 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (GERICHTE FIX VOOR KNOPPEN EN AUDIO INPUT)
+# 4. CSS
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
-    .stApp { background-color: #F7F9F2; }
-    
-    /* ALGEMENE TEKST ZWART */
-    h1, h2, h3, label, p, span, div, .stMarkdown { 
-        color: #000000 !important; 
-        font-weight: 800 !important; 
-    }
-    
-    /* FIX VOOR ALLE INPUTS (NAAM, WACHTWOORD, UPLOAD) */
-    input, textarea, [data-baseweb="input"], [data-testid="stFileUploader"] {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 2px solid #1A3317 !important;
-    }
-
-    /* SPECIFIEKE FIX VOOR DE AUDIO INPUT ZONE */
-    [data-testid="stAudioInput"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #1A3317 !important;
-        border-radius: 15px !important;
-    }
-    [data-testid="stAudioInput"] button {
-        background-color: #F0F2F6 !important;
-        color: #000000 !important;
-    }
-
-    /* TABS STYLING */
-    .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
-    .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
-    .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; border-radius: 10px; }
-
-    /* FOTO KAARTEN OMA */
-    .photo-card { 
-        border-radius: 25px; 
-        background: #000000; 
-        margin-top: 20px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
-        overflow: hidden; 
-        border: 6px solid #1A3317;
-    }
-    .name-tag { 
-        background: #1A3317; 
-        color: #FFFFFF !important; 
-        padding: 20px; 
-        font-size: 35px; 
-        text-align: center; 
-        font-weight: bold; 
-    }
-
-    /* DE STARTKNOP EN VERSTUURKNOP (FELGROEN MET WITTE TEKST) */
-    div.stButton > button:first-child {
-        background-color: #2E7D32 !important; 
-        color: #FFFFFF !important; 
-        border-radius: 20px !important;
-        font-size: 24px !important;
-        font-weight: 900 !important;
-        height: 70px !important;
-        border: 3px solid #000000 !important;
-        width: 100%;
-        display: block;
-    }
-    
-    /* Hover effect voor knoppen */
-    div.stButton > button:hover {
-        background-color: #1B5E20 !important;
-        color: #FFFFFF !important;
-    }
-
-    /* View badge in beheer */
-    .view-badge {
-        background-color: #E8F5E9;
-        padding: 8px 15px;
-        border-radius: 10px;
-        border: 2px solid #2E7D32;
-        color: #000000 !important;
-        display: inline-block;
-    }
+    .stApp { background-color: #F7F9F2; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .block-container { padding: 0rem !important; max-width: 100% !important; }
+    .stTabs [data-baseweb="tab-list"] { background-color: #4A6741; padding: 15px 0; display: flex; justify-content: center; gap: 30px; }
+    .stTabs [data-baseweb="tab"] { height: 80px; min-width: 200px; color: #E8EDDF !important; font-size: 1.5rem !important; font-weight: 700; border-radius: 20px; border: none !important; background-color: rgba(255,255,255,0.1); }
+    .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #4A6741 !important; transform: scale(1.05); }
+    .photo-card { border-radius: 35px; background: #000; margin: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+    .name-tag { background: #4A6741; color: white; padding: 18px; font-size: 26px; text-align: center; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
     st.markdown("<div style='padding:100px; text-align:center;'><h1>🌿 Altijd Dichtbij</h1>", unsafe_allow_html=True)
     with st.form("login"):
-        fid = st.text_input("Naam van de Familie")
-        pw = st.text_input("Wachtwoord", type="password")
-        # Dit is de 'Start' knop
-        if st.form_submit_button("START HET ALBUM"):
-            if (fid and pw == "STARTUP2026") or (fid.lower() == "mestdagh" and pw.lower() == "mestdagh"):
+        fid = st.text_input("Familienaam")
+        pw = st.text_input("Code", type="password")
+        if st.form_submit_button("Start"):
+            if fid and pw == "STARTUP2026":
                 st.session_state.logged_in, st.session_state.family_id = True, fid
                 st.query_params["family"] = fid
                 st.rerun()
-            else:
-                st.error("Naam of code is niet juist.")
 else:
     fid = st.session_state.family_id
     full_album = load_data(fid)
@@ -146,64 +73,68 @@ else:
             d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
             if nu - d < timedelta(days=HOUDBAARHEID_DAGEN):
                 album_oma.append(item)
-                item['views'] += 1
+                item['views'] += 1 
                 updated = True
         
-        if updated:
-            save_data(fid, full_album)
+        if updated: save_data(fid, full_album)
 
         if not album_oma:
-            st.markdown("<h2 style='text-align:center; padding:100px;'>Wachten op een nieuw berichtje...</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align:center; padding:100px; color:#888;'>Wachten op een berichtje...</h2>", unsafe_allow_html=True)
         else:
             cols = st.columns(2)
             for i, item in enumerate(album_oma):
                 with cols[i % 2]:
-                    st.markdown(f'<div class="photo-card"><img src="data:image/jpeg;base64,{item["foto"]}" style="width:100%; height:450px; object-fit:cover;"><div class="name-tag">{item["naam"].upper()}</div></div>', unsafe_allow_html=True)
+                    fit = item.get('formaat', 'cover')
+                    st.markdown(f'<div class="photo-card"><img src="data:image/jpeg;base64,{item["foto"]}" style="width:100%; height:400px; object-fit:{fit};"><div class="name-tag">{item["naam"]}</div></div>', unsafe_allow_html=True)
                     if item.get('audio'):
-                        if st.button(f"🔊 HOOR BERICHT VAN {item['naam'].upper()}", key=f"aud_{i}"):
-                            item['views'] += 1
-                            save_data(fid, full_album)
+                        if st.button(f"▶️ Luister naar {item['naam']}", key=f"aud_{i}"):
                             st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
 
     with tab2:
-        st.markdown("<div style='padding:20px;'><h2>Stuur een herinnering</h2></div>", unsafe_allow_html=True)
+        st.markdown("<div style='padding:30px;'><h2>Nieuwe herinnering</h2>", unsafe_allow_html=True)
         with st.form("up", clear_on_submit=True):
-            n = st.text_input("Wie staat er op de foto?")
-            f = st.file_uploader("Kies een foto", type=['jpg','png','jpeg'])
-            a = st.audio_input("Spreek een berichtje in")
-            # Dit is de 'Verstuur' knop
-            if st.form_submit_button("🚀 VERSTUUR NAAR OMA"):
+            n, f = st.text_input("Naam"), st.file_uploader("Foto", type=['jpg','png','jpeg'])
+            fmt = st.radio("Formaat", ["Vullend", "Passend"], horizontal=True)
+            a = st.audio_input("Bericht")
+            if st.form_submit_button("🚀 Verstuur"):
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
-                    full_album.insert(0, {
-                        "naam": n, 
-                        "foto": f_b64, 
-                        "audio": a_b64, 
-                        "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), 
-                        "views": 0
-                    })
+                    full_album.append({"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
                     save_data(fid, full_album)
-                    st.success("Verzonden! Oma ziet het direct.")
+                    st.success("Verzonden!")
                     st.rerun()
 
     with tab3:
-        st.header("⚙️ Beheer & Statistieken")
-        if st.button("🚪 Uitloggen", use_container_width=True):
+        st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+        
+        # DE ECHTE COLLAGE
+        st.subheader("📬 Jouw Wekelijkse Impact")
+        if st.button("✨ Genereer Live Collage", use_container_width=True):
+            st.balloons()
+            with st.container(border=True):
+                st.markdown(f"<h2 style='text-align:center; color:#4A6741;'>Weekoverzicht: Familie {fid}</h2>", unsafe_allow_html=True)
+                recenten = [i for i in full_album if (nu - datetime.strptime(i['datum'], "%Y-%m-%d %H:%M:%S")).days < 7]
+                if not recenten: st.info("Nog geen foto's deze week.")
+                else:
+                    grid = st.columns(3)
+                    for idx, item in enumerate(recenten):
+                        with grid[idx % 3]:
+                            st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
+                            st.markdown(f"<p style='text-align:center; font-size:12px;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
+                    st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
+
+        st.markdown("---")
+        st.subheader("Beheer Archief")
+        for idx, item in enumerate(full_album):
+            ca, cb = st.columns([4,1])
+            ca.write(f"🖼️ {item['naam']} ({item['views']} views)")
+            if cb.button("Wis", key=f"del_{idx}"):
+                full_album.pop(idx); save_data(fid, full_album); st.rerun()
+
+        # DE TERUGGEKEERDE UITLOGKNOP
+        st.markdown("---")
+        if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
             st.query_params.clear()
             st.session_state.logged_in = False
             st.rerun()
-        
-        st.divider()
-        for idx, item in enumerate(full_album):
-            with st.container(border=True):
-                c1, c2, c3 = st.columns([1, 3, 1])
-                c1.image(f"data:image/jpeg;base64,{item['foto']}", width=100)
-                c2.markdown(f"""
-                    **Van:** {item['naam']}<br>
-                    <div class="view-badge">👁️ **{item['views']} keer** bekeken</div>
-                """, unsafe_allow_html=True)
-                if c3.button("🗑️ Wis", key=f"del_{idx}"):
-                    full_album.pop(idx)
-                    save_data(fid, full_album)
-                    st.rerun()
