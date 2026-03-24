@@ -35,7 +35,7 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (VOLLEDIGE FIX VOOR DONKERE ELEMENTEN)
+# 4. CSS (GERICHTE FIX VOOR KNOPPEN EN AUDIO INPUT)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -47,28 +47,30 @@ st.markdown("""
         font-weight: 800 !important; 
     }
     
-    /* FIX VOOR ALLE INPUTS EN CONTAINERS (UPLOAD EN AUDIO) */
-    input, textarea, [data-baseweb="input"], [data-testid="stFileUploader"], [data-testid="stAudioInput"] {
+    /* FIX VOOR ALLE INPUTS (NAAM, WACHTWOORD, UPLOAD) */
+    input, textarea, [data-baseweb="input"], [data-testid="stFileUploader"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 2px solid #1A3317 !important;
-        border-radius: 10px !important;
     }
 
-    /* SPECIFIEKE FIX VOOR DE DRAG & DROP ZONE TEKST */
-    [data-testid="stFileUploader"] section {
+    /* SPECIFIEKE FIX VOOR DE AUDIO INPUT ZONE */
+    [data-testid="stAudioInput"] {
         background-color: #FFFFFF !important;
+        border: 2px solid #1A3317 !important;
+        border-radius: 15px !important;
     }
-    [data-testid="stFileUploader"] section div div {
+    [data-testid="stAudioInput"] button {
+        background-color: #F0F2F6 !important;
         color: #000000 !important;
     }
-    
+
     /* TABS STYLING */
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
     .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; border-radius: 10px; }
 
-    /* FOTO KAARTEN */
+    /* FOTO KAARTEN OMA */
     .photo-card { 
         border-radius: 25px; 
         background: #000000; 
@@ -77,7 +79,6 @@ st.markdown("""
         overflow: hidden; 
         border: 6px solid #1A3317;
     }
-    
     .name-tag { 
         background: #1A3317; 
         color: #FFFFFF !important; 
@@ -87,20 +88,26 @@ st.markdown("""
         font-weight: bold; 
     }
 
-    /* AUDIO KNOP STYLING */
-    .stButton > button {
+    /* DE STARTKNOP EN VERSTUURKNOP (FELGROEN MET WITTE TEKST) */
+    div.stButton > button:first-child {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         border-radius: 20px !important;
-        font-size: 26px !important;
+        font-size: 24px !important;
         font-weight: 900 !important;
-        height: 80px !important;
-        border: 4px solid #000000 !important;
-        margin-top: 15px;
+        height: 70px !important;
+        border: 3px solid #000000 !important;
         width: 100%;
+        display: block;
+    }
+    
+    /* Hover effect voor knoppen */
+    div.stButton > button:hover {
+        background-color: #1B5E20 !important;
+        color: #FFFFFF !important;
     }
 
-    /* VIEW BADGE IN BEHEER */
+    /* View badge in beheer */
     .view-badge {
         background-color: #E8F5E9;
         padding: 8px 15px;
@@ -108,7 +115,6 @@ st.markdown("""
         border: 2px solid #2E7D32;
         color: #000000 !important;
         display: inline-block;
-        margin-top: 5px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -118,7 +124,8 @@ if not st.session_state.logged_in:
     with st.form("login"):
         fid = st.text_input("Naam van de Familie")
         pw = st.text_input("Wachtwoord", type="password")
-        if st.form_submit_button("Start"):
+        # Dit is de 'Start' knop
+        if st.form_submit_button("START HET ALBUM"):
             if (fid and pw == "STARTUP2026") or (fid.lower() == "mestdagh" and pw.lower() == "mestdagh"):
                 st.session_state.logged_in, st.session_state.family_id = True, fid
                 st.query_params["family"] = fid
@@ -164,6 +171,7 @@ else:
             n = st.text_input("Wie staat er op de foto?")
             f = st.file_uploader("Kies een foto", type=['jpg','png','jpeg'])
             a = st.audio_input("Spreek een berichtje in")
+            # Dit is de 'Verstuur' knop
             if st.form_submit_button("🚀 VERSTUUR NAAR OMA"):
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
@@ -187,14 +195,12 @@ else:
             st.rerun()
         
         st.divider()
-        st.subheader("Overzicht Foto's")
         for idx, item in enumerate(full_album):
             with st.container(border=True):
                 c1, c2, c3 = st.columns([1, 3, 1])
                 c1.image(f"data:image/jpeg;base64,{item['foto']}", width=100)
                 c2.markdown(f"""
                     **Van:** {item['naam']}<br>
-                    **Gezonden op:** {item['datum']}<br>
                     <div class="view-badge">👁️ **{item['views']} keer** bekeken</div>
                 """, unsafe_allow_html=True)
                 if c3.button("🗑️ Wis", key=f"del_{idx}"):
