@@ -4,24 +4,34 @@ import json
 import os
 from datetime import datetime, timedelta
 
-# 1. CONFIG
+# 1. CONFIG & LIMITS
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
+HOUDBAARHEID_OMA = 3      # Zichtbaar voor oma
+HOUDBAARHEID_ARCHIEF = 7  # Na 7 dagen echt uit het bestand verwijderen (Schoonmaak)
 
-# 2. DATA FUNCTIES
-HOUDBAARHEID_DAGEN = 3
-
+# 2. DATA FUNCTIES MET AUTO-CLEANUP
 def get_file_path(family_id):
     return f"data_{family_id}.json"
 
-def load_data(family_id):
+def load_and_clean_data(family_id):
     path = get_file_path(family_id)
     if os.path.exists(path):
         with open(path, "r") as f:
             try:
                 data = json.load(f)
+                nu = datetime.now()
+                # SCHOONMAAK: Behoud alleen data jonger dan 7 dagen
+                cleaned_data = []
                 for item in data:
-                    if 'views' not in item: item['views'] = 0
-                return data
+                    d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
+                    if nu - d < timedelta(days=HOUDBAARHEID_ARCHIEF):
+                        if 'views' not in item: item['views'] = 0
+                        cleaned_data.append(item)
+                
+                # Als er data verwijderd is, sla het op om ruimte te besparen
+                if len(cleaned_data) != len(data):
+                    save_data(family_id, cleaned_data)
+                return cleaned_data
             except: return []
     return []
 
@@ -29,13 +39,13 @@ def save_data(family_id, data):
     with open(get_file_path(family_id), "w") as f:
         json.dump(data, f)
 
-# 3. LOGIN LOGICA
+# 3. LOGIN STATUS
 if 'logged_in' not in st.session_state:
     if "family" in st.query_params:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS
+# 4. PREMIUM UI DESIGN
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -50,18 +60,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
-    st.markdown("<div style='padding:100px; text-align:center;'><h1>🌿 Altijd Dichtbij</h1>", unsafe_allow_html=True)
+    st.markdown("<div style='padding:100px; text-align:center;'><h1>🌿 Altijd Dichtbij</h1><p>Verbinden over generaties heen</p>", unsafe_allow_html=True)
     with st.form("login"):
-        fid = st.text_input("Familienaam")
-        pw = st.text_input("Code", type="password")
-        if st.form_submit_button("Start"):
+        fid = st.text_input("Familienaam").strip()
+        pw = st.text_input("Toegangscode", type="password")
+        if st.form_submit_button("Inloggen"):
             if fid and pw == "STARTUP2026":
                 st.session_state.logged_in, st.session_state.family_id = True, fid
                 st.query_params["family"] = fid
                 st.rerun()
 else:
     fid = st.session_state.family_id
-    full_album = load_data(fid)
+    full_album = load_and_clean_data(fid)
     nu = datetime.now()
     
     tab1, tab2, tab3 = st.tabs(["👵 OMA", "📤 FAMILIE", "⚙️ BEHEER"])
@@ -71,7 +81,7 @@ else:
         updated = False
         for item in full_album:
             d = datetime.strptime(item['datum'], "%Y-%m-%d %H:%M:%S")
-            if nu - d < timedelta(days=HOUDBAARHEID_DAGEN):
+            if nu - d < timedelta(days=HOUDBAARHEID_OMA):
                 album_oma.append(item)
                 item['views'] += 1 
                 updated = True
@@ -79,7 +89,7 @@ else:
         if updated: save_data(fid, full_album)
 
         if not album_oma:
-            st.markdown("<h2 style='text-align:center; padding:100px; color:#888;'>Wachten op een berichtje...</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align:center; padding:100px; color:#888;'>Wachten op een nieuw moment...</h2>", unsafe_allow_html=True)
         else:
             cols = st.columns(2)
             for i, item in enumerate(album_oma):
@@ -91,50 +101,49 @@ else:
                             st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
 
     with tab2:
-        st.markdown("<div style='padding:30px;'><h2>Nieuwe herinnering</h2>", unsafe_allow_html=True)
+        st.markdown("<div style='padding:30px;'><h2>Stuur een herinnering naar Ieper</h2>", unsafe_allow_html=True)
         with st.form("up", clear_on_submit=True):
             n, f = st.text_input("Naam"), st.file_uploader("Foto", type=['jpg','png','jpeg'])
             fmt = st.radio("Formaat", ["Vullend", "Passend"], horizontal=True)
-            a = st.audio_input("Bericht")
-            if st.form_submit_button("🚀 Verstuur"):
+            a = st.audio_input("Spreek een bericht in voor Oma")
+            if st.form_submit_button("🚀 Verstuur Moment"):
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
                     full_album.append({"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
                     save_data(fid, full_album)
-                    st.success("Verzonden!")
+                    st.success("Verzonden! Oma ziet het binnen enkele seconden.")
                     st.rerun()
 
     with tab3:
-        st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+        st.markdown("<div style='padding:30px;'><h1>📊 Familie Dashboard</h1>", unsafe_allow_html=True)
         
-        # DE ECHTE COLLAGE
-        st.subheader("📬 Jouw Wekelijkse Impact")
-        if st.button("✨ Genereer Live Collage", use_container_width=True):
+        # IMPACT COLLAGE
+        if st.button("✨ Genereer Wekelijks Impact-Rapport", use_container_width=True):
             st.balloons()
             with st.container(border=True):
                 st.markdown(f"<h2 style='text-align:center; color:#4A6741;'>Weekoverzicht: Familie {fid}</h2>", unsafe_allow_html=True)
-                recenten = [i for i in full_album if (nu - datetime.strptime(i['datum'], "%Y-%m-%d %H:%M:%S")).days < 7]
-                if not recenten: st.info("Nog geen foto's deze week.")
+                if not full_album: st.info("Nog geen data beschikbaar.")
                 else:
                     grid = st.columns(3)
-                    for idx, item in enumerate(recenten):
+                    for idx, item in enumerate(full_album):
                         with grid[idx % 3]:
                             st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
                             st.markdown(f"<p style='text-align:center; font-size:12px;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
-                    st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
+                    st.success(f"Dankzij jullie zijn er deze week {sum(i['views'] for i in full_album)} glimlachen getoverd op Oma's gezicht!")
 
         st.markdown("---")
-        st.subheader("Beheer Archief")
+        st.subheader("Instellingen & Privacy")
+        st.info(f"💾 Systeem-status: Foto's ouder dan {HOUDBAARHEID_ARCHIEF} dagen worden automatisch verwijderd voor uw privacy.")
+        
         for idx, item in enumerate(full_album):
             ca, cb = st.columns([4,1])
-            ca.write(f"🖼️ {item['naam']} ({item['views']} views)")
-            if cb.button("Wis", key=f"del_{idx}"):
+            ca.write(f"🖼️ {item['naam']} (Gedeeld op {item['datum']})")
+            if cb.button("Wis nu", key=f"del_{idx}"):
                 full_album.pop(idx); save_data(fid, full_album); st.rerun()
 
-        # DE TERUGGEKEERDE UITLOGKNOP
         st.markdown("---")
-        if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
+        if st.button("🚪 Uitloggen", key="logout_v16", use_container_width=True):
             st.query_params.clear()
             st.session_state.logged_in = False
             st.rerun()
