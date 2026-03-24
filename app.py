@@ -35,13 +35,13 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (MAXIMAAL CONTRAST & ANTI-ZWART-OP-ZWART)
+# 4. CSS (MAXIMAAL CONTRAST: ZWART OP WIT)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* FORCEER PIKZWARTE TEKST VOOR ALLE LABELS EN TITELS */
+    /* ALLE TEKST MOET PIKZWART ZIJN */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
@@ -49,18 +49,18 @@ st.markdown("""
     
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     
-    /* FIX VOOR INPUT VELDEN (WITTE ACHTERGROND, ZWARTE TEKST) */
+    /* INPUT VELDEN: WITTE ACHTERGROND MET ZWARTE TEKST */
     input, textarea, [data-baseweb="input"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
-        border: 2px solid #1A3317 !important;
+        border: 3px solid #000000 !important;
         border-radius: 10px !important;
     }
     
-    /* FILE UPLOADER EN AUDIO INPUT FIX */
+    /* UPLOAD EN AUDIO ZONES: WIT MET ZWARTE RAND */
     [data-testid="stFileUploader"], [data-testid="stAudioInput"] {
         background-color: #FFFFFF !important;
-        border: 2px solid #1A3317 !important;
+        border: 3px solid #000000 !important;
         border-radius: 15px !important;
         padding: 10px !important;
     }
@@ -81,16 +81,23 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* DE ALGEMENE START/VERSTUUR KNOPPEN */
+    /* DE KNOPPEN: WITTE ACHTERGROND MET ZWARTE TEKST (ZOALS GEVRAAGD) */
     .stButton > button {
-        background-color: #2E7D32 !important; 
-        color: #FFFFFF !important; 
+        background-color: #FFFFFF !important; 
+        color: #000000 !important; 
         border-radius: 20px !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         font-weight: 900 !important;
-        height: 70px !important;
-        border: 3px solid #000000 !important;
+        height: 80px !important;
+        border: 4px solid #000000 !important;
         width: 100%;
+        text-transform: uppercase;
+    }
+    
+    /* Hover effect voor de knoppen */
+    .stButton > button:hover {
+        background-color: #EEEEEE !important;
+        border: 4px solid #1A3317 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -149,7 +156,6 @@ else:
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
-                    # Gebruik insert(0) zodat de nieuwste foto vooraan komt
                     full_album.insert(0, {"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
                     save_data(fid, full_album)
                     st.success("Verzonden! Oma ziet het direct.")
