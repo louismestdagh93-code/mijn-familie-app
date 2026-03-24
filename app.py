@@ -35,7 +35,7 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (ALLES IN HET GROEN VOOR ZICHTBAARHEID)
+# 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
@@ -80,9 +80,8 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* --- FORCEER ALLE KNOPPEN NAAR GROEN --- */
-    /* Dit pakt elke button in de app: Start, Verstuur, Luister, Wis, Collage, etc. */
-    .stButton > button {
+    /* --- FORCEER ALLE KNOPPEN NAAR GROEN (INCLUSIEF START EN VERSTUUR) --- */
+    .stButton > button, [data-testid="stFormSubmitButton"] > button {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         border-radius: 20px !important;
@@ -90,16 +89,17 @@ st.markdown("""
         font-weight: 900 !important;
         border: 3px solid #000000 !important;
         width: 100%;
+        height: 70px !important;
         margin-top: 10px;
         margin-bottom: 10px;
     }
 
-    /* Zorg dat de tekst IN de knop ook wit blijft bij Streamlit updates */
-    .stButton > button div p {
+    /* Zorg dat de tekst IN de knop ook wit blijft */
+    .stButton > button div p, [data-testid="stFormSubmitButton"] > button div p {
         color: #FFFFFF !important;
     }
 
-    .stButton > button:hover {
+    .stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover {
         background-color: #1B5E20 !important;
         border: 3px solid #FFFFFF !important;
     }
