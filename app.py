@@ -35,13 +35,13 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (VOLLEDIGE CONTROLE OVER GROENE KNOPPEN)
+# 4. CSS (ALLES IN HET GROEN VOOR ZICHTBAARHEID)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* TEKST CONTRAST */
+    /* PIKZWARTE TEKST VOOR LABELS */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
@@ -52,43 +52,61 @@ st.markdown("""
     /* INPUT VELDEN */
     input, textarea, [data-baseweb="input"] {
         background-color: #FFFFFF !important;
+        color: #000000 !important;
         border: 3px solid #1A3317 !important;
+        border-radius: 10px !important;
     }
     
-    /* AUDIO & UPLOAD ZONES */
+    /* UPLOAD EN AUDIO ZONES IN HET LICHTGROEN */
     [data-testid="stFileUploader"] section, [data-testid="stAudioInput"] {
         background-color: #E8F5E9 !important;
         border: 3px solid #2E7D32 !important;
         border-radius: 15px !important;
     }
 
-    /* TABS */
+    /* TABS STYLING */
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
     .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; }
 
-    /* --- DE KNOPPEN FIX --- */
-    /* Dit pakt normale knoppen én de knoppen in formulieren (zoals Verstuur) */
-    .stButton > button, [data-testid="stFormSubmitButton"] > button {
+    /* FOTO KAARTEN OMA */
+    .photo-card { 
+        border-radius: 35px; 
+        background: #000; 
+        margin: 20px; 
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+        overflow: hidden; 
+        border: 5px solid #1A3317;
+    }
+    .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
+
+    /* --- FORCEER ALLE KNOPPEN NAAR GROEN --- */
+    /* Dit pakt elke button in de app: Start, Verstuur, Luister, Wis, Collage, etc. */
+    .stButton > button {
         background-color: #2E7D32 !important; 
         color: #FFFFFF !important; 
         border-radius: 20px !important;
-        font-size: 24px !important;
+        font-size: 22px !important;
         font-weight: 900 !important;
-        height: 75px !important;
         border: 3px solid #000000 !important;
-        width: 100% !important;
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 10px;
     }
 
-    /* Forceer de tekstkleur binnen de knop naar wit */
-    .stButton > button p, [data-testid="stFormSubmitButton"] > button p {
+    /* Zorg dat de tekst IN de knop ook wit blijft bij Streamlit updates */
+    .stButton > button div p {
         color: #FFFFFF !important;
     }
 
-    /* Hover effect */
-    .stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover {
+    .stButton > button:hover {
         background-color: #1B5E20 !important;
         border: 3px solid #FFFFFF !important;
+    }
+
+    /* Manage app badge onderaan ook groen */
+    .viewerBadge_container__1QS1n {
+        background-color: #2E7D32 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -143,7 +161,6 @@ else:
             f = st.file_uploader("Kies een foto", type=['jpg','png','jpeg'])
             fmt = st.radio("Formaat", ["Vullend", "Passend"], horizontal=True)
             a = st.audio_input("Spreek je berichtje in")
-            # DEZE KNOP WORDT NU DOOR DE CSS GEPAKT
             if st.form_submit_button("🚀 VERSTUUR NAAR OMA"):
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
@@ -155,12 +172,31 @@ else:
 
     with tab3:
         st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
-        if st.button("✨ Genereer Live Collage"):
+        st.subheader("📬 Jouw Wekelijkse Impact")
+        if st.button("✨ Genereer Live Collage", use_container_width=True):
             st.balloons()
-            # ... rest van collage code ...
+            with st.container(border=True):
+                st.markdown(f"<h2 style='text-align:center;'>Weekoverzicht: Familie {fid}</h2>", unsafe_allow_html=True)
+                recenten = [i for i in full_album if (nu - datetime.strptime(i['datum'], "%Y-%m-%d %H:%M:%S")).days < 7]
+                if not recenten: st.info("Nog geen foto's deze week.")
+                else:
+                    grid = st.columns(3)
+                    for idx, item in enumerate(recenten):
+                        with grid[idx % 3]:
+                            st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
+                            st.markdown(f"<p style='text-align:center;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
+                    st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
 
-        # ... rest van beheer code ...
-        if st.button("🚪 Uitloggen", key="logout_final"):
+        st.markdown("---")
+        st.subheader("Beheer Archief")
+        for idx, item in enumerate(full_album):
+            ca, cb = st.columns([4,1])
+            ca.write(f"🖼️ {item['naam']} ({item['views']} views)")
+            if cb.button("🗑️ Wis", key=f"del_{idx}"):
+                full_album.pop(idx); save_data(fid, full_album); st.rerun()
+
+        st.markdown("---")
+        if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
             st.query_params.clear()
             st.session_state.logged_in = False
             st.rerun()
