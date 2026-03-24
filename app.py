@@ -108,7 +108,8 @@ else:
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
-                    full_album.append({"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
+                    # DIT IS DE OUDE REGEL DIE JE MOET VERVANGEN:
+full_album.append({"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
                     save_data(fid, full_album)
                     st.success("Verzonden!")
                     st.rerun()
