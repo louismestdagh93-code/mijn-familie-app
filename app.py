@@ -35,13 +35,13 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS (MAXIMAAL CONTRAST: ZWART OP WIT)
+# 4. CSS (RODE KNOPPEN & CONTRAST)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { background-color: #F7F9F2; }
     
-    /* ALLE TEKST MOET PIKZWART ZIJN */
+    /* ALLE TEKST PIKZWART */
     h1, h2, h3, label, p, span, div, .stMarkdown { 
         color: #000000 !important; 
         font-weight: 800 !important; 
@@ -49,7 +49,7 @@ st.markdown("""
     
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     
-    /* INPUT VELDEN: WITTE ACHTERGROND MET ZWARTE TEKST */
+    /* INPUT VELDEN */
     input, textarea, [data-baseweb="input"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
@@ -57,7 +57,7 @@ st.markdown("""
         border-radius: 10px !important;
     }
     
-    /* UPLOAD EN AUDIO ZONES: WIT MET ZWARTE RAND */
+    /* UPLOAD EN AUDIO ZONES */
     [data-testid="stFileUploader"], [data-testid="stAudioInput"] {
         background-color: #FFFFFF !important;
         border: 3px solid #000000 !important;
@@ -81,10 +81,10 @@ st.markdown("""
     }
     .name-tag { background: #1A3317; color: white !important; padding: 18px; font-size: 30px; text-align: center; font-weight: bold; }
 
-    /* DE KNOPPEN: WITTE ACHTERGROND MET ZWARTE TEKST (ZOALS GEVRAAGD) */
+    /* DE RODE KNOPPEN (START EN VERSTUUR) */
     .stButton > button {
-        background-color: #FFFFFF !important; 
-        color: #000000 !important; 
+        background-color: #FF0000 !important; /* Rood */
+        color: #FFFFFF !important; /* Witte tekst voor leesbaarheid */
         border-radius: 20px !important;
         font-size: 26px !important;
         font-weight: 900 !important;
@@ -94,10 +94,9 @@ st.markdown("""
         text-transform: uppercase;
     }
     
-    /* Hover effect voor de knoppen */
+    /* Hover effect: iets donkerder rood */
     .stButton > button:hover {
-        background-color: #EEEEEE !important;
-        border: 4px solid #1A3317 !important;
+        background-color: #CC0000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
