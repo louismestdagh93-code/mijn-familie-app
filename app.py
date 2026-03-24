@@ -29,23 +29,22 @@ def save_data(family_id, data):
     with open(get_file_path(family_id), "w") as f:
         json.dump(data, f)
 
-# 3. LOGIN LOGICA
+# 3. LOGIN LOGICA (Inclusief Familie Mestdagh)
 if 'logged_in' not in st.session_state:
     if "family" in st.query_params:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 
-# 4. CSS verbetering
+# 4. CSS (Tekst weer zichtbaar maken + kleuren)
 st.markdown("""
 <style>
     header, footer, #MainMenu { visibility: hidden; }
     .stApp { 
         background-color: #F7F9F2; 
         font-family: 'Helvetica Neue', Arial, sans-serif;
-        color: #4A6741 !important;  /* DIT VOEGT DONKERGROENE TEKST TOE */
+        color: #4A6741 !important; 
     }
-    /* Zorg dat labels boven inputvelden ook donker zijn */
-    label, p, h1, h2, h3 { 
+    label, p, h1, h2, h3, span { 
         color: #4A6741 !important; 
     }
     .block-container { padding: 0rem !important; max-width: 100% !important; }
@@ -63,10 +62,13 @@ if not st.session_state.logged_in:
         fid = st.text_input("Familienaam")
         pw = st.text_input("Code", type="password")
         if st.form_submit_button("Start"):
-            if fid and pw == "STARTUP2026":
+            # Toegang voor STARTUP2026 of MESTDAGH
+            if (fid and pw == "STARTUP2026") or (fid.lower() == "mestdagh" and pw.lower() == "mestdagh"):
                 st.session_state.logged_in, st.session_state.family_id = True, fid
                 st.query_params["family"] = fid
                 st.rerun()
+            else:
+                st.error("Onjuiste gegevens.")
 else:
     fid = st.session_state.family_id
     full_album = load_data(fid)
@@ -108,15 +110,24 @@ else:
                 if n and f:
                     f_b64 = base64.b64encode(f.read()).decode()
                     a_b64 = base64.b64encode(a.read()).decode() if a else None
-                    full_album.append({"naam": n, "foto": f_b64, "audio": a_b64, "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), "formaat": "cover" if fmt=="Vullend" else "contain", "views": 0})
+                    
+                    # HIER GEBEURT HET: insert(0) zet de foto vooraan (linksboven)
+                    full_album.insert(0, {
+                        "naam": n, 
+                        "foto": f_b64, 
+                        "audio": a_b64, 
+                        "datum": nu.strftime("%Y-%m-%d %H:%M:%S"), 
+                        "formaat": "cover" if fmt=="Vullend" else "contain", 
+                        "views": 0
+                    })
+                    
                     save_data(fid, full_album)
-                    st.success("Verzonden!")
+                    st.success("Verzonden! Oma ziet deze foto nu als eerste.")
                     st.rerun()
 
     with tab3:
         st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
         
-        # DE ECHTE COLLAGE
         st.subheader("📬 Jouw Wekelijkse Impact")
         if st.button("✨ Genereer Live Collage", use_container_width=True):
             st.balloons()
@@ -140,7 +151,6 @@ else:
             if cb.button("Wis", key=f"del_{idx}"):
                 full_album.pop(idx); save_data(fid, full_album); st.rerun()
 
-        # DE TERUGGEKEERDE UITLOGKNOP
         st.markdown("---")
         if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
             st.query_params.clear()
