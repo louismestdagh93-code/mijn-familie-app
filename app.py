@@ -1,97 +1,110 @@
 import streamlit as st
 import base64
-import time
 
-# --- 1. CONFIG ---
+# --- 1. CONFIG & STYLING ---
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide")
 
-# --- 2. DATABASE SIMULATIE ---
-# We gebruiken session_state zodat de data blijft bestaan zolang je het tabblad niet sluit.
-if 'album' not in st.session_state:
-    st.session_state.album = []
-
-# --- 3. STYLING (WARME VZW LOOK) ---
 st.markdown("""
 <style>
     .stApp { background-color: #FDFCF0; }
-    .titel { color: #2E7D32; text-align: center; font-family: 'Segoe UI', sans-serif; }
-    .card {
+    .titel { color: #2E7D32; text-align: center; font-family: sans-serif; }
+    
+    /* Container voor de foto en de onzichtbare knop */
+    .photo-card {
+        position: relative;
+        width: 100%;
+        border: 4px solid #2E7D32;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 20px;
         background-color: white;
-        border: 2px solid #2E7D32;
-        border-radius: 15px;
-        padding: 10px;
+    }
+
+    /* De onzichtbare Streamlit knop over de foto heen dwingen */
+    div.stButton > button {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 250px; /* Hoogte aanpassen aan je foto */
+        background-color: transparent !important;
+        color: transparent !important;
+        border: none !important;
+        z-index: 10;
+    }
+    
+    div.stButton > button:hover {
+        background-color: rgba(46, 125, 50, 0.1) !important; /* Lichte schijn bij hover */
+    }
+
+    .naam-label {
+        background-color: #2E7D32;
+        color: white;
         text-align: center;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+        padding: 10px;
+        font-weight: bold;
+        font-size: 18px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. HEADER ---
-st.markdown("<h1 class='titel'>💚 Altijd Dichtbij</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Klik op een foto om de boodschap te horen</p>", unsafe_allow_html=True)
+# --- 2. STANDAARD DATA (Voorbeeld zonder bestanden) ---
+# Ik gebruik hier publieke links naar foto's en geluiden als voorbeeld
+if 'album' not in st.session_state:
+    st.session_state.album = [
+        {
+            "naam": "Louis (Voorbeeld)", 
+            "foto_url": "https://www.w3schools.com/howto/img_avatar.png", 
+            "audio_url": "https://www.w3schools.com/html/horse.mp3"
+        }
+    ]
 
-# --- 5. MENU (TABS) ---
-# We maken twee tabbladen: één voor Oma, één voor de Familie
-tab_oma, tab_familie, tab_admin = st.tabs(["👵 Oma Portaal", "👨‍👩‍👧 Familie Upload", "⚙️ Beheer"])
-
-# --- TAB 1: OMA PORTAAL ---
-with tab_oma:
-    if not st.session_state.album:
-        st.info("Er staan nog geen foto's in het album. Ga naar de Familie-tab om iets te sturen!")
+# --- 3. LOGICA VOOR AFSPELEN ---
+def play_audio(url_or_bytes):
+    if isinstance(url_or_bytes, bytes):
+        # Als het geüpload is (bytes)
+        b64 = base64.b64encode(url_or_bytes).decode()
+        md = f'<audio autoplay><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>'
     else:
-        cols = st.columns(3)
-        for i, item in enumerate(st.session_state.album):
-            with cols[i % 3]:
-                with st.container():
-                    st.markdown(f"<div class='card'>", unsafe_allow_html=True)
-                    st.image(item['foto'], use_container_width=True)
-                    st.markdown(f"<b>{item['naam']}</b>", unsafe_allow_html=True)
-                    
-                    if st.button(f"Luister naar {item['naam']} 🔊", key=f"play_{i}"):
-                        # Audio afspelen via HTML5
-                        audio_base64 = base64.b64encode(item['audio']).decode()
-                        audio_html = f"""
-                            <audio autoplay>
-                                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                            </audio>
-                        """
-                        st.components.v1.html(audio_html, height=0)
-                        st.success(f"Boodschap van {item['naam']} wordt afgespeeld...")
-                    st.markdown("</div>", unsafe_allow_html=True)
+        # Als het een internet-link is
+        md = f'<audio autoplay><source src="{url_or_bytes}" type="audio/mp3"></audio>'
+    st.components.v1.html(md, height=0)
 
-# --- TAB 2: FAMILIE UPLOAD ---
-with tab_familie:
-    st.subheader("Stuur een nieuwe herinnering")
-    with st.form("upload_form", clear_on_submit=True):
-        naam = st.text_input("Wie staat er op de foto? (Naam)")
-        foto_file = st.file_uploader("Kies een mooie foto", type=['png', 'jpg', 'jpeg'])
-        audio_file = st.file_uploader("Spreek een boodschap in of kies een fragment", type=['mp3', 'wav', 'm4a'])
-        
-        submit = st.form_submit_button("🚀 Verstuur naar Oma")
-        
-        if submit:
-            if naam and foto_file and audio_file:
-                # Bestanden omzetten naar bytes voor opslag
-                nieuw_item = {
-                    "naam": naam,
-                    "foto": foto_file.read(),
-                    "audio": audio_file.read()
-                }
-                st.session_state.album.append(nieuw_item)
-                st.success("Gelukt! De foto staat in het album van Oma.")
-                time.sleep(1)
-                st.rerun()
+# --- 4. DE APP ---
+st.markdown("<h1 class='titel'>💚 Oma's Fotoboek</h1>", unsafe_allow_html=True)
+
+tab1, tab2 = st.tabs(["👵 Bekijken", "📸 Uploaden"])
+
+with tab1:
+    cols = st.columns(3)
+    for i, item in enumerate(st.session_state.album):
+        with cols[i % 3]:
+            # De kaart tonen
+            st.markdown('<div class="photo-card">', unsafe_allow_html=True)
+            if "foto_url" in item:
+                st.image(item["foto_url"], use_container_width=True)
             else:
-                st.error("Vergeet niet een naam, foto én audiobestand toe te voegen.")
+                st.image(item["foto_bytes"], use_container_width=True)
+            st.markdown(f'<div class="naam-label">{item["naam"]}</div>', unsafe_allow_html=True)
+            
+            # De onzichtbare knop die de actie triggert
+            if st.button(f"Play {i}", key=f"btn_{i}"):
+                source = item["audio_url"] if "audio_url" in item else item["audio_bytes"]
+                play_audio(source)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TAB 3: ADMIN PORTAAL ---
-with tab_admin:
-    st.subheader("Beheer van de app")
-    admin_code = st.text_input("Admin Code", type="password")
-    if admin_code == "STARTUP2026":
-        st.write(f"Aantal foto's in systeem: {len(st.session_state.album)}")
-        if st.button("🗑️ Wis het hele album"):
-            st.session_state.album = []
+with tab2:
+    st.subheader("Voeg tijdelijk iemand toe")
+    new_name = st.text_input("Naam")
+    new_photo = st.file_uploader("Foto", type=['png', 'jpg'])
+    new_audio = st.file_uploader("Geluid (.mp3)", type=['mp3'])
+    
+    if st.button("Toevoegen aan album"):
+        if new_name and new_photo and new_audio:
+            st.session_state.album.append({
+                "naam": new_name,
+                "foto_bytes": new_photo.read(),
+                "audio_bytes": new_audio.read()
+            })
+            st.success("Toegevoegd! Kijk bij het tabblad 'Bekijken'.")
             st.rerun()
-    else:
-        st.warning("Voer de juiste code in voor admin-functies.")
