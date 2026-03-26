@@ -35,8 +35,6 @@ if 'logged_in' not in st.session_state:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
     else: st.session_state.logged_in = False
 # De foto laten zien bovenaan het inlogscherm
-            st.image("pexels-rdne-5637770.jpg", use_container_width=True)
-        
             st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
             st.write("Deel mooie momenten met de hele familie.")
             st.divider()
