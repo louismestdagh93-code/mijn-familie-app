@@ -71,7 +71,7 @@ if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         familie_naam = st.text_input("Familienaam")
         toegangs_code = st.text_input("Toegangscode", type="password")
         if st.button("Inloggen", use_container_width=True):
-            if familie_naam.lower() == "STARTUP2026" and toegangs_code == "STARTUP2026":
+           if familie_naam.lower() == "startup2026" and toegangs_code == "STARTUP2026":
                 st.session_state.logged_in = True
                 st.rerun()
             else:
