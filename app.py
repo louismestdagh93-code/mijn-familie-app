@@ -31,17 +31,42 @@ def save_data(family_id, data):
 
 # 3. LOGIN LOGICA
 if 'logged_in' not in st.session_state or not st.session_state.logged_in:
-    if "family" in st.query_params:
-        st.session_state.logged_in = True
-        st.session_state.family_id = st.query_params["family"]
-    else:
-        # Alles hieronder staat nu met 8 spaties ingesprongen
-        st.image("pexels-rdne-5637770.jpg", use_container_width=True)
-        st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
-        st.write("Deel mooie momenten met de hele familie.")
-        st.divider()
+    # 1. De "Magische" Achtergrond Code
+    st.markdown(f"""
+        <style>
+        .stApp {{
+            background-image: url("https://raw.githubusercontent.com/jouw-gebruikersnaam/mijn-familie-app/main/pexels-rdne-5637770.jpg");
+            background-size: cover;
+            background-position: center;
+        }}
+        .login-box {{
+            background-color: rgba(255, 255, 255, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+            text-align: center;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+
+    # 2. Het inlogvenster dat over de foto zweeft
+    with st.container():
+        st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.title("Altijd Dichtbij")
         
-        st.session_state.logged_in = False
+        familie_naam = st.text_input("Familienaam", key="fam_input")
+        toegangs_code = st.text_input("Toegangscode", type="password", key="pwd_input")
+        
+        if st.button("Inloggen", use_container_width=True):
+            # Hier checken we of de gegevens kloppen
+            if familie_naam.lower() == "jansen" and toegangs_code == "1234":
+                st.session_state.logged_in = True
+                st.rerun()
+            else:
+                st.error("Onjuiste gegevens")
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.stop() # Zorgt dat de rest van de app pas laadt na inloggen
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
