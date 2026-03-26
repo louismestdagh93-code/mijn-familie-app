@@ -30,24 +30,45 @@ def save_data(family_id, data):
         json.dump(data, f)
 
 # 3. LOGIN LOGICA
+# 3. LOGIN LOGICA MET ACHTERGROND
 if 'logged_in' not in st.session_state or not st.session_state.logged_in:
-    # 1. De "Magische" Achtergrond Code
+    # Dit stukje CSS zet de foto op de achtergrond van de HELE pagina
     st.markdown(f"""
         <style>
         .stApp {{
-            background-image: url("https://raw.githubusercontent.com/jouw-gebruikersnaam/mijn-familie-app/main/pexels-rdne-5637770.jpg");
+            background: linear_gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("https://raw.githubusercontent.com/louismestdagh93-code/mijn-familie-app/main/pexels-rdne-5637770.jpg");
             background-size: cover;
             background-position: center;
+            background-attachment: fixed;
         }}
-        .login-box {{
-            background-color: rgba(255, 255, 255, 0.85);
-            padding: 30px;
+        .login-card {{
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
             border-radius: 15px;
-            box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
-            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-width: 400px;
+            margin: auto;
         }}
         </style>
-        """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+    # Het witte inlog-vakje
+    st.markdown('<div class="login-card">', unsafe_allow_html=True)
+    st.header("Altijd Dichtbij")
+    
+    familie_naam = st.text_input("Familienaam", key="login_fam")
+    toegangs_code = st.text_input("Toegangscode", type="password", key="login_code")
+    
+    if st.button("Inloggen", use_container_width=True):
+        # We checken de login (Morgen koppelen we dit aan je database!)
+        if familie_naam.lower() == "test" and toegangs_code == "1234":
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("Naam of code is onjuist")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
 
     # 2. Het inlogvenster dat over de foto zweeft
     with st.container():
