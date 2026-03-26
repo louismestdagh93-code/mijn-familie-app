@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. DATA FUNCTIES
-HOUDBAARHEID_DAGEN = 3
+HOUDBAARHEID_DAGEN = 7
 
 def get_file_path(family_id):
     return f"data_{family_id}.json"
@@ -30,19 +30,18 @@ def save_data(family_id, data):
         json.dump(data, f)
 
 # 3. LOGIN LOGICA
-# 3. LOGIN LOGICA
-if 'logged_in' not in st.session_state:
+if 'logged_in' not in st.session_state or not st.session_state.logged_in:
     if "family" in st.query_params:
         st.session_state.logged_in = True
         st.session_state.family_id = st.query_params["family"]
     else:
+        # Alles hieronder staat nu met 8 spaties ingesprongen
+        st.image("pexels-rdne-5637770.jpg", use_container_width=True)
+        st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
+        st.write("Deel mooie momenten met de hele familie.")
+        st.divider()
+        
         st.session_state.logged_in = False
-
-    # De volgende regels moeten 4 spaties naar rechts vanaf de kantlijn:
-    st.image("pexels-rdne-5637770.jpg", use_container_width=True)
-    st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
-    st.write("Deel mooie momenten met de hele familie.")
-    st.divider()
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
