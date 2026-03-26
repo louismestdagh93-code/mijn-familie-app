@@ -43,7 +43,6 @@ if 'logged_in' not in st.session_state:
     st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
     st.write("Deel mooie momenten met de hele familie.")
     st.divider()
-        st.divider()
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
