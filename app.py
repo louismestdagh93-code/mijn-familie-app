@@ -30,16 +30,19 @@ def save_data(family_id, data):
         json.dump(data, f)
 
 # 3. LOGIN LOGICA
+# 3. LOGIN LOGICA
 if 'logged_in' not in st.session_state:
     if "family" in st.query_params:
-        st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
-   else:
+        st.session_state.logged_in = True
+        st.session_state.family_id = st.query_params["family"]
+    else:
         st.session_state.logged_in = False
-        
-        # Alles hieronder staat nu netjes ingesprongen naar rechts:
-        st.image("pexels-rdne-5637770.jpg", use_container_width=True)
-        st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
-        st.write("Deel mooie momenten met de hele familie.")
+
+    # De volgende regels moeten 4 spaties naar rechts vanaf de kantlijn:
+    st.image("pexels-rdne-5637770.jpg", use_container_width=True)
+    st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
+    st.write("Deel mooie momenten met de hele familie.")
+    st.divider()
         st.divider()
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
