@@ -30,64 +30,54 @@ def save_data(family_id, data):
         json.dump(data, f)
 
 # 3. LOGIN LOGICA
-# 3. LOGIN LOGICA MET ACHTERGROND
+import base64
+
+def get_base64(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
 if 'logged_in' not in st.session_state or not st.session_state.logged_in:
-    # Dit stukje CSS zet de foto op de achtergrond van de HELE pagina
+    # We zetten de foto om naar code die de browser begrijpt
+    img_base64 = get_base64("pexels-rdne-5637770.jpg")
+    
+    # De CSS die de tekst OVER de foto plaatst
     st.markdown(f"""
         <style>
-        .stApp {{
-            background: linear_gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("https://raw.githubusercontent.com/louismestdagh93-code/mijn-familie-app/main/pexels-rdne-5637770.jpg");
+        .cover-photo {{
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("data:image/jpg;base64,{img_base64}");
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
-        }}
-        .login-card {{
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 2rem;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            max-width: 400px;
-            margin: auto;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            margin-bottom: 20px;
         }}
         </style>
+        
+        <div class="cover-photo">
+            <h1 style='color: white; margin: 0;'>Altijd Dichtbij</h1>
+            <p style='font-size: 1.2rem;'>Samen herinneringen delen</p>
+        </div>
     """, unsafe_allow_html=True)
 
-    # Het witte inlog-vakje
-    st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    st.header("Altijd Dichtbij")
-    
-    familie_naam = st.text_input("Familienaam", key="login_fam")
-    toegangs_code = st.text_input("Toegangscode", type="password", key="login_code")
-    
-    if st.button("Inloggen", use_container_width=True):
-        # We checken de login (Morgen koppelen we dit aan je database!)
-        if familie_naam.lower() == "test" and toegangs_code == "1234":
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("Naam of code is onjuist")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.stop()
-
-    # 2. Het inlogvenster dat over de foto zweeft
-    with st.container():
-        st.markdown('<div class="login-box">', unsafe_allow_html=True)
-        st.title("Altijd Dichtbij")
-        
-        familie_naam = st.text_input("Familienaam", key="fam_input")
-        toegangs_code = st.text_input("Toegangscode", type="password", key="pwd_input")
-        
+    # De inlogvelden komen hieronder in een mooi wit kader
+    with st.expander("Klik hier om in te loggen", expanded=True):
+        familie_naam = st.text_input("Familienaam")
+        toegangs_code = st.text_input("Toegangscode", type="password")
         if st.button("Inloggen", use_container_width=True):
-            # Hier checken we of de gegevens kloppen
-            if familie_naam.lower() == "jansen" and toegangs_code == "1234":
+            if familie_naam.lower() == "test" and toegangs_code == "1234":
                 st.session_state.logged_in = True
                 st.rerun()
             else:
                 st.error("Onjuiste gegevens")
-        st.markdown('</div>', unsafe_allow_html=True)
     
-    st.stop() # Zorgt dat de rest van de app pas laadt na inloggen
+    st.stop()
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
