@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. DATA FUNCTIES
-HOUDBAARHEID_DAGEN = 7
+HOUDBAARHEID_DAGEN = 3
 
 def get_file_path(family_id):
     return f"data_{family_id}.json"
@@ -30,47 +30,17 @@ def save_data(family_id, data):
         json.dump(data, f)
 
 # 3. LOGIN LOGICA
-# 3. LOGIN LOGICA
-if 'logged_in' not in st.session_state or not st.session_state.logged_in:
-    # De foto met tekst erop
-    img_base64 = get_base64("pexels-rdne-5637770.jpg")
-    st.markdown(f"""
-        <style>
-        .cover-photo {{
-            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("data:image/jpg;base64,{img_base64}");
-            background-size: cover;
-            background-position: center;
-            height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            border-radius: 15px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            margin-bottom: 20px;
-        }}
-        </style>
-        <div class="cover-photo">
-            <h1 style='color: white; margin: 0;'>Altijd Dichtbij</h1>
-            <p style='font-size: 1.2rem;'>Samen herinneringen delen</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Het inlogvakje (MOET 4 spaties ingesprongen zijn)
-    with st.expander("Klik hier om in te loggen", expanded=True):
-        familie_naam = st.text_input("Familienaam")
-        toegangs_code = st.text_input("Toegangscode", type="password")
+if 'logged_in' not in st.session_state:
+    if "family" in st.query_params:
+        st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
+   else:
+        st.session_state.logged_in = False
         
-        if st.button("Inloggen", use_container_width=True):
-            # We checken op kleine letters voor de naam
-            if familie_naam.lower() == "startup2026" and toegangs_code == "STARTUP2026":
-                st.session_state.logged_in = True
-                st.rerun()
-            else:
-                st.error("Onjuiste gegevens")
-    
-    st.stop()
+        # Alles hieronder staat nu netjes ingesprongen naar rechts:
+        st.image("pexels-rdne-5637770.jpg", use_container_width=True)
+        st.markdown("<h1 style='text-align: center;'>Welkom bij Altijd Dichtbij</h1>", unsafe_allow_html=True)
+        st.write("Deel mooie momenten met de hele familie.")
+        st.divider()
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
