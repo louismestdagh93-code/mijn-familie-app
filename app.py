@@ -29,12 +29,60 @@ def save_data(family_id, data):
     with open(get_file_path(family_id), "w") as f:
         json.dump(data, f)
 
-# 3. LOGIN LOGICA
+# 3. LOGIN LOGICA (MET FOTO ACHTERGROND)
 if 'logged_in' not in st.session_state:
     if "family" in st.query_params:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
-    else: st.session_state.logged_in = False
+    else: 
+        st.session_state.logged_in = False
 
+if not st.session_state.logged_in:
+    # Functie om de foto om te zetten naar een achtergrond
+    def get_base64_img(file):
+        with open(file, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    
+    try:
+        bin_str = get_base64_img("pexels-rdne-5637770.jpg")
+        # Deze CSS overschrijft tijdelijk de achtergrond met jouw foto
+        st.markdown(f"""
+            <style>
+            .stApp {{
+                background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("data:image/png;base64,{bin_str}");
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+            /* Zorg dat het inlogformulier goed leesbaar is op de foto */
+            .stForm {{
+                background-color: rgba(255, 255, 255, 0.9) !important;
+                padding: 20px !important;
+                border-radius: 20px !important;
+                border: 2px solid #1A3317 !important;
+            }}
+            </style>
+        """, unsafe_allow_html=True)
+    except:
+        pass # Als de foto mist, gebruikt hij de standaard kleur uit je Sectie 4
+
+    st.markdown("<div style='padding-top:50px; text-align:center;'><h1 style='color:white !important; text-shadow: 2px 2px 4px #000;'>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
+    
+    with st.container():
+        col1, col2, col3 = st.columns([1, 2, 1]) # Centreren op breed scherm
+        with col2:
+            with st.form("login"):
+                fid = st.text_input("Familienaam")
+                pw = st.text_input("Code", type="password")
+                if st.form_submit_button("START HET ALBUM"):
+                    if fid.lower() == "startup2026" and pw == "STARTUP2026":
+                        st.session_state.logged_in, st.session_state.family_id = True, fid
+                        st.query_params["family"] = fid
+                        st.rerun()
+                    else:
+                        st.error("Naam of code is onjuist.")
+    st.stop()
+
+# 4. CSS (HIERNA LAAT JE JOUW LANGE BLOK GEWOON STAAN)
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
