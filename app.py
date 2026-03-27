@@ -160,17 +160,50 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
-    st.markdown("<div style='padding:80px 0 20px 0; text-align:center;'><h1>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
+    # Foto omzetten naar achtergrond
+    def get_base64_img(file):
+        with open(file, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    
+    try:
+        bin_str = get_base64_img("pexels-rdne-5637770.jpg")
+        st.markdown(f"""
+            <style>
+            .stApp {{
+                background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url("data:image/png;base64,{bin_str}");
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+            .stForm {{
+                background-color: rgba(255, 255, 255, 0.95) !important;
+                padding: 30px !important;
+                border-radius: 20px !important;
+                border: 3px solid #1A3317 !important;
+            }}
+            /* Zorg dat de tekst boven de vakjes donker en leesbaar is */
+            .login-label {{
+                color: #1A3317 !important;
+                font-weight: bold !important;
+                font-size: 1.2rem !important;
+                margin-bottom: -15px !important;
+                text-shadow: none !important;
+            }}
+            </style>
+        """, unsafe_allow_html=True)
+    except:
+        pass
+
+    st.markdown("<div style='padding-top:50px; text-align:center;'><h1 style='color:white !important; text-shadow: 2px 2px 8px #000;'>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login"):
-            # Labels toegevoegd boven de velden
-            st.markdown("### Familienaam")
-            fid = st.text_input("Voer hier de familienaam in", label_visibility="collapsed")
+            st.markdown('<p class="login-label">Familienaam</p>', unsafe_allow_html=True)
+            fid = st.text_input("Familienaam", label_visibility="collapsed")
             
-            st.markdown("### Toegangscode")
-            pw = st.text_input("Voer hier de code in", type="password", label_visibility="collapsed")
+            st.markdown('<p class="login-label">Toegangscode</p>', unsafe_allow_html=True)
+            pw = st.text_input("Code", type="password", label_visibility="collapsed")
             
             if st.form_submit_button("START HET ALBUM"):
                 if fid and pw == "STARTUP2026":
