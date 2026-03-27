@@ -160,17 +160,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
-    st.markdown("<div style='padding:100px; text-align:center;'><h1>🌿 Altijd Dichtbij</h1>", unsafe_allow_html=True)
-    with st.form("login"):
-        fid = st.text_input("Familienaam")
-        pw = st.text_input("Code", type="password")
-        if st.form_submit_button("START HET ALBUM"):
-            if fid and pw == "STARTUP2026":
-                st.session_state.logged_in, st.session_state.family_id = True, fid
-                st.query_params["family"] = fid
-                st.rerun()
-            else:
-                st.error("Naam of code is onjuist.")
+    st.markdown("<div style='padding:80px 0 20px 0; text-align:center;'><h1>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.form("login"):
+            # Labels toegevoegd boven de velden
+            st.markdown("### Familienaam")
+            fid = st.text_input("Voer hier de familienaam in", label_visibility="collapsed")
+            
+            st.markdown("### Toegangscode")
+            pw = st.text_input("Voer hier de code in", type="password", label_visibility="collapsed")
+            
+            if st.form_submit_button("START HET ALBUM"):
+                if fid and pw == "STARTUP2026":
+                    st.session_state.logged_in, st.session_state.family_id = True, fid
+                    st.query_params["family"] = fid
+                    st.rerun()
+                else:
+                    st.error("Naam of code is onjuist.")
+    st.stop()
 else:
     fid = st.session_state.family_id
     full_album = load_data(fid)
