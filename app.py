@@ -181,28 +181,22 @@ if not st.session_state.logged_in:
                 border-radius: 20px !important;
                 border: 3px solid #1A3317 !important;
             }}
-            /* Zorg dat de tekst boven de vakjes donker en leesbaar is */
-            .login-label {{
-                color: #1A3317 !important;
-                font-weight: bold !important;
-                font-size: 1.2rem !important;
-                margin-bottom: -15px !important;
-                text-shadow: none !important;
-            }}
             </style>
         """, unsafe_allow_html=True)
     except:
         pass
 
+    # Titel boven de foto
     st.markdown("<div style='padding-top:50px; text-align:center;'><h1 style='color:white !important; text-shadow: 2px 2px 8px #000;'>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login"):
-            st.markdown('<p class="login-label">Familienaam</p>', unsafe_allow_html=True)
+            # We gebruiken hier 'style' direct op de tekst om de zwarte kleur van Sectie 4 te verslaan
+            st.markdown("<p style='color: #1A3317 !important; font-weight: bold !important; margin-bottom: 0px;'>Familienaam</p>", unsafe_allow_html=True)
             fid = st.text_input("Familienaam", label_visibility="collapsed")
             
-            st.markdown('<p class="login-label">Toegangscode</p>', unsafe_allow_html=True)
+            st.markdown("<p style='color: #1A3317 !important; font-weight: bold !important; margin-bottom: 0px; margin-top: 10px;'>Toegangscode</p>", unsafe_allow_html=True)
             pw = st.text_input("Code", type="password", label_visibility="collapsed")
             
             if st.form_submit_button("START HET ALBUM"):
