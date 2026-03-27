@@ -186,17 +186,17 @@ if not st.session_state.logged_in:
     except:
         pass
 
-    # Grote witte titel boven de foto (deze mag wit blijven)
+    # De grote witte titel boven de foto (deze mag wit blijven)
     st.markdown("<div style='padding-top:50px; text-align:center;'><h1 style='color:white !important; text-shadow: 2px 2px 8px #000;'>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login"):
-            # We dwingen hier de kleur ZWART (#000000) af met 'inline styling'
-            st.markdown("<h3 style='color: #000000 !important; font-family: sans-serif; margin-bottom: 0px; text-shadow: none;'>Familienaam</h3>", unsafe_allow_html=True)
+            # We gebruiken nu 'span' in plaats van h3 om de CSS van Sectie 4 te omzeilen
+            st.markdown("<span style='color: #000000 !important; font-size: 20px !important; font-weight: bold !important; display: block; margin-bottom: 10px; text-shadow: none !important;'>Familienaam</span>", unsafe_allow_html=True)
             fid = st.text_input("Naam", label_visibility="collapsed")
             
-            st.markdown("<h3 style='color: #000000 !important; font-family: sans-serif; margin-bottom: 0px; margin-top: 15px; text-shadow: none;'>Toegangscode</h3>", unsafe_allow_html=True)
+            st.markdown("<span style='color: #000000 !important; font-size: 20px !important; font-weight: bold !important; display: block; margin-top: 15px; margin-bottom: 10px; text-shadow: none !important;'>Toegangscode</span>", unsafe_allow_html=True)
             pw = st.text_input("Code", type="password", label_visibility="collapsed")
             
             if st.form_submit_button("START HET ALBUM"):
