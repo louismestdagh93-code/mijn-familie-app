@@ -31,7 +31,6 @@ def save_data(family_id, data):
     with open(get_file_path(family_id), "w") as f:
         json.dump(data, f)
 
-# --- NIEUW: LOGFUNCTIE VOOR HET LOGBESTAND ---
 def log_bestelling(family_id, product, prijs, opmerking=""):
     bestand = "bestellingen.csv"
     nu_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -42,7 +41,7 @@ def log_bestelling(family_id, product, prijs, opmerking=""):
             writer.writerow(["Datum", "Familie", "Product", "Prijs", "Opmerking"])
         writer.writerow([nu_str, family_id, product, prijs, opmerking.replace('\n', ' ')])
 
-# 3. LOGIN LOGICA (MET FOTO ACHTERGROND)
+# 3. LOGIN LOGICA
 if 'logged_in' not in st.session_state:
     if "family" in st.query_params:
         st.session_state.logged_in, st.session_state.family_id = True, st.query_params["family"]
@@ -53,7 +52,6 @@ if not st.session_state.logged_in:
     def get_base64_img(file):
         with open(file, "rb") as f:
             return base64.b64encode(f.read()).decode()
-    
     try:
         bin_str = get_base64_img("pexels-rdne-5637770.jpg")
         st.markdown(f"""
@@ -69,15 +67,13 @@ if not st.session_state.logged_in:
             </style>
         """, unsafe_allow_html=True)
     except: pass
-
     st.markdown("<div style='padding-top:50px; text-align:center;'><h1 style='color:white !important; text-shadow: 2px 2px 8px #000;'>🌿 Altijd Dichtbij</h1></div>", unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login"):
-            st.markdown("<span style='color: #000000 !important; font-size: 20px !important; font-weight: bold !important; display: block; margin-bottom: 10px; text-shadow: none !important;'>Familienaam</span>", unsafe_allow_html=True)
+            st.markdown("<span style='color: #000000 !important; font-size: 20px !important; font-weight: bold !important;'>Familienaam</span>", unsafe_allow_html=True)
             fid = st.text_input("Naam", label_visibility="collapsed")
-            st.markdown("<span style='color: #000000 !important; font-size: 20px !important; font-weight: bold !important; display: block; margin-top: 15px; margin-bottom: 10px; text-shadow: none !important;'>Toegangscode</span>", unsafe_allow_html=True)
+            st.markdown("<span style='color: #000000 !important; font-size: 20px !important; font-weight: bold !important;'>Toegangscode</span>", unsafe_allow_html=True)
             pw = st.text_input("Code", type="password", label_visibility="collapsed")
             if st.form_submit_button("START HET ALBUM"):
                 if fid and pw == "STARTUP2026":
@@ -98,7 +94,6 @@ st.markdown("""
     h1, h2, h3, label, p, span, div, .stMarkdown { color: #000000 !important; font-weight: 800 !important; }
     .block-container { padding: 0rem !important; max-width: 100% !important; }
     input, textarea, [data-baseweb="input"] { background-color: #FFFFFF !important; color: #000000 !important; border: 3px solid #1A3317 !important; border-radius: 10px !important; }
-    [data-testid="stFileUploader"] section, [data-testid="stAudioInput"] { background-color: #E8F5E9 !important; border: 3px solid #2E7D32 !important; border-radius: 15px !important; }
     .stTabs [data-baseweb="tab-list"] { background-color: #1A3317; padding: 15px 0; }
     .stTabs [data-baseweb="tab"] { color: #FFFFFF !important; font-size: 1.8rem !important; font-weight: 900; }
     .stTabs [aria-selected="true"] { background-color: #F7F9F2 !important; color: #1A3317 !important; }
@@ -109,8 +104,6 @@ st.markdown("""
         font-size: 22px !important; font-weight: 900 !important; border: 3px solid #000000 !important;
         width: 100%; height: 70px !important; margin-top: 10px; margin-bottom: 10px;
     }
-    .stButton > button div p, [data-testid="stFormSubmitButton"] > button div p { color: #FFFFFF !important; }
-    .stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover { background-color: #1B5E20 !important; border: 3px solid #FFFFFF !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -141,7 +134,7 @@ with tab1:
                 st.markdown(f'<div class="photo-card"><img src="data:image/jpeg;base64,{item["foto"]}" style="width:100%; height:450px; object-fit:{fit};"><div class="name-tag">{item["naam"].upper()}</div></div>', unsafe_allow_html=True)
                 if item.get('audio'):
                     if st.button(f"▶️ HOOR BERICHT VAN {item['naam'].upper()}", key=f"aud_{i}"):
-                        st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item['audio']}" type="audio/mp3"></audio>', height=0)
+                        st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
 
 with tab2:
     st.markdown("<div style='padding:30px;'><h2>Nieuwe herinnering sturen</h2>", unsafe_allow_html=True)
@@ -160,7 +153,25 @@ with tab2:
 with tab3:
     st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
     
-    # --- BESTELSECTIE ---
+    # --- DE STATISTIEKEN ---
+    st.subheader("📬 Jouw Wekelijkse Impact")
+    if st.button("✨ Genereer Live Collage", use_container_width=True):
+        st.balloons()
+        with st.container(border=True):
+            st.markdown(f"<h2 style='text-align:center;'>Weekoverzicht: Familie {fid}</h2>", unsafe_allow_html=True)
+            recenten = [i for i in full_album if (nu - datetime.strptime(i['datum'], "%Y-%m-%d %H:%M:%S")).days < 7]
+            if not recenten: st.info("Nog geen foto's deze week.")
+            else:
+                grid = st.columns(3)
+                for idx, item in enumerate(recenten):
+                    with grid[idx % 3]:
+                        st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
+                        st.markdown(f"<p style='text-align:center;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
+                st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
+
+    st.markdown("---")
+    
+    # --- DE BESTELOPTIES ---
     st.subheader("🎁 Maak Oma's dag extra bijzonder")
     col_ver1, col_ver2 = st.columns(2)
     with col_ver1:
@@ -174,18 +185,17 @@ with tab3:
     with col_ver2:
         with st.container(border=True):
             st.write("### 📸 Fysieke Foto (€3,50)")
-            # FOTO SELECTIE OPTIE
             foto_opties = [f"{i+1}. {item['naam']} ({item['datum']})" for i, item in enumerate(full_album)]
-            gekozen_foto = st.selectbox("Welke foto moet op de kaart?", options=foto_opties) if foto_opties else None
-            msg_foto = st.text_area("Berichtje voor achterop?", placeholder="Lieve oma...", key="foto_msg")
+            gekozen_foto = st.selectbox("Welke foto op de kaart?", options=foto_opties) if foto_opties else None
+            msg_foto = st.text_area("Bericht achterop?", placeholder="Lieve oma...", key="foto_msg")
             if st.button("STUUR FOTO PER POST"):
                 if gekozen_foto:
                     log_bestelling(fid, "Fysieke Kaart", "€3,50", f"Foto: {gekozen_foto} | Tekst: {msg_foto}")
                     st.success("Besteld!")
-                else:
-                    st.error("Er zijn geen foto's om te sturen.")
 
     st.markdown("---")
+    
+    # --- HET ARCHIEF ---
     st.subheader("Beheer Archief")
     for idx, item in enumerate(full_album):
         ca, cb = st.columns([4,1])
@@ -193,8 +203,9 @@ with tab3:
         if cb.button("🗑️ Wis", key=f"del_{idx}"):
             full_album.pop(idx); save_data(fid, full_album); st.rerun()
 
-    # --- SYSTEEM SECTIE ---
     st.markdown("---")
+    
+    # --- HET SYSTEEM OVERZICHT ---
     st.subheader("📑 Systeem Overzicht")
     show_logs = st.toggle("Toon binnengekomen bestellingen")
     if show_logs or fid == "ADMIN":
@@ -202,8 +213,8 @@ with tab3:
             df = pd.read_csv("bestellingen.csv")
             st.dataframe(df, use_container_width=True)
             with open("bestellingen.csv", "rb") as file:
-                st.download_button("📥 DOWNLOAD BESTELLINGEN", data=file, file_name="bestellingen.csv", mime="text/csv")
+                st.download_button("📥 DOWNLOAD CSV", data=file, file_name="bestellingen.csv", mime="text/csv")
 
     st.markdown("---")
-    if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
+    if st.button("🚪 Uitloggen", use_container_width=True):
         st.query_params.clear(); st.session_state.logged_in = False; st.rerun()
