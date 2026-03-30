@@ -35,11 +35,13 @@ def log_bestelling(family_id, product, prijs, opmerking=""):
     bestand = "bestellingen.csv"
     nu_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     bestaat_al = os.path.exists(bestand)
+    # Zorg dat de opmerking geen enters bevat die de CSV breken
+    schone_opmerking = str(opmerking).replace('\n', ' ').replace('\r', '')
     with open(bestand, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not bestaat_al:
             writer.writerow(["Datum", "Familie", "Product", "Prijs", "Opmerking"])
-        writer.writerow([nu_str, family_id, product, prijs, opmerking.replace('\n', ' ')])
+        writer.writerow([nu_str, family_id, product, prijs, schone_opmerking])
 
 # 3. LOGIN LOGICA
 if 'logged_in' not in st.session_state:
@@ -153,7 +155,6 @@ with tab2:
 with tab3:
     st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
     
-    # --- DE STATISTIEKEN ---
     st.subheader("📬 Jouw Wekelijkse Impact")
     if st.button("✨ Genereer Live Collage", use_container_width=True):
         st.balloons()
@@ -171,7 +172,6 @@ with tab3:
 
     st.markdown("---")
     
-    # --- DE BESTELOPTIES ---
     st.subheader("🎁 Maak Oma's dag extra bijzonder")
     col_ver1, col_ver2 = st.columns(2)
     with col_ver1:
@@ -190,12 +190,14 @@ with tab3:
             msg_foto = st.text_area("Bericht achterop?", placeholder="Lieve oma...", key="foto_msg")
             if st.button("STUUR FOTO PER POST"):
                 if gekozen_foto:
-                    log_bestelling(fid, "Fysieke Kaart", "€3,50", f"Foto: {gekozen_foto} | Tekst: {msg_foto}")
-                    st.success("Besteld!")
+                    info_bestelling = f"FOTO: {gekozen_foto} | TEKST: {msg_foto}"
+                    log_bestelling(fid, "Fysieke Kaart", "€3,50", info_bestelling)
+                    st.success("Bestelling voor de foto is toegevoegd!")
+                else:
+                    st.error("Selecteer eerst een foto.")
 
     st.markdown("---")
     
-    # --- HET ARCHIEF ---
     st.subheader("Beheer Archief")
     for idx, item in enumerate(full_album):
         ca, cb = st.columns([4,1])
@@ -205,7 +207,6 @@ with tab3:
 
     st.markdown("---")
     
-    # --- HET SYSTEEM OVERZICHT ---
     st.subheader("📑 Systeem Overzicht")
     show_logs = st.toggle("Toon binnengekomen bestellingen")
     if show_logs or fid == "ADMIN":
