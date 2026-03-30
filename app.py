@@ -82,7 +82,6 @@ if not st.session_state.logged_in:
                         st.error("Naam of code is onjuist.")
     st.stop()
 
-# 4. CSS (HIERNA LAAT JE JOUW LANGE BLOK GEWOON STAAN)
 # 4. CSS (AANGEPAST VOOR ZICHTBARE STARTKNOP)
 st.markdown("""
 <style>
@@ -270,6 +269,25 @@ else:
                             st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
                             st.markdown(f"<p style='text-align:center;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
                     st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
+
+        # --- NIEUWE SECTIE: VERRASSINGEN ---
+        st.markdown("---")
+        st.subheader("🎁 Maak Oma's dag extra bijzonder")
+        col_ver1, col_ver2 = st.columns(2)
+        
+        with col_ver1:
+            with st.container(border=True):
+                st.write("### 🌸 Bloemen")
+                st.write("Laat morgen een vers boeket bezorgen.")
+                if st.button("BESTEL BLOEMEN"):
+                    st.success("Aanvraag ontvangen! Wij nemen contact op.")
+                    
+        with col_ver2:
+            with st.container(border=True):
+                st.write("### 📸 Fysieke Foto")
+                st.write("Stuur de laatste foto als echte kaart.")
+                if st.button("STUUR FOTO PER POST"):
+                    st.success("Aanvraag ontvangen! We maken de kaart klaar.")
 
         st.markdown("---")
         st.subheader("Beheer Archief")
