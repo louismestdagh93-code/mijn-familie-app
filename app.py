@@ -7,8 +7,12 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # 1. CONFIG
-st.set_page_config(page_title="Altijd Dichtbij", layout="wide", initial_sidebar_state="collapsed")
-
+st.set_page_config(
+    page_title="Altijd Dichtbij", 
+    page_icon="🌿", # Je kunt hier ook een URL naar je eigen logo-bestand zetten
+    layout="wide", 
+    initial_sidebar_state="collapsed"
+)
 # 2. DATA FUNCTIES
 HOUDBAARHEID_DAGEN = 3
 
