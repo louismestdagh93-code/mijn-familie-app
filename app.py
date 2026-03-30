@@ -84,7 +84,6 @@ if not st.session_state.logged_in:
                     st.session_state.logged_in, st.session_state.family_id = True, fid
                     st.query_params["family"] = fid
                     st.rerun()
-                # ADMIN LOGIN MOGELIJKHEID
                 elif fid.lower() == "admin" and pw == "ADMIN2026":
                     st.session_state.logged_in, st.session_state.family_id = True, "ADMIN"
                     st.rerun()
@@ -120,7 +119,6 @@ fid = st.session_state.family_id
 full_album = load_data(fid)
 nu = datetime.now()
 
-# Dashboard Tabs
 tab1, tab2, tab3 = st.tabs(["👵 OMA", "📤 FAMILIE", "⚙️ BEHEER"])
 
 with tab1:
@@ -143,7 +141,7 @@ with tab1:
                 st.markdown(f'<div class="photo-card"><img src="data:image/jpeg;base64,{item["foto"]}" style="width:100%; height:450px; object-fit:{fit};"><div class="name-tag">{item["naam"].upper()}</div></div>', unsafe_allow_html=True)
                 if item.get('audio'):
                     if st.button(f"▶️ HOOR BERICHT VAN {item['naam'].upper()}", key=f"aud_{i}"):
-                        st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item["audio"]}" type="audio/mp3"></audio>', height=0)
+                        st.components.v1.html(f'<audio autoplay><source src="data:audio/mp3;base64,{item['audio']}" type="audio/mp3"></audio>', height=0)
 
 with tab2:
     st.markdown("<div style='padding:30px;'><h2>Nieuwe herinnering sturen</h2>", unsafe_allow_html=True)
@@ -161,39 +159,31 @@ with tab2:
 
 with tab3:
     st.markdown("<div style='padding:30px;'><h1>📊 Dashboard</h1>", unsafe_allow_html=True)
-    st.subheader("📬 Jouw Wekelijkse Impact")
-    if st.button("✨ Genereer Live Collage", use_container_width=True):
-        st.balloons()
-        with st.container(border=True):
-            st.markdown(f"<h2 style='text-align:center;'>Weekoverzicht: Familie {fid}</h2>", unsafe_allow_html=True)
-            recenten = [i for i in full_album if (nu - datetime.strptime(i['datum'], "%Y-%m-%d %H:%M:%S")).days < 7]
-            if not recenten: st.info("Nog geen foto's deze week.")
-            else:
-                grid = st.columns(3)
-                for idx, item in enumerate(recenten):
-                    with grid[idx % 3]:
-                        st.image(f"data:image/jpeg;base64,{item['foto']}", use_container_width=True)
-                        st.markdown(f"<p style='text-align:center;'><b>{item['naam']}</b><br>👁️ {item['views']}x bekeken</p>", unsafe_allow_html=True)
-                st.success(f"Geweldig! Oma heeft deze week al {sum(i['views'] for i in recenten)} keer jullie momenten herbeleefd.")
-
-    st.markdown("---")
+    
+    # --- BESTELSECTIE ---
     st.subheader("🎁 Maak Oma's dag extra bijzonder")
     col_ver1, col_ver2 = st.columns(2)
     with col_ver1:
         with st.container(border=True):
             st.write("### 🌸 Bloemen (€20)")
-            st.write("Laat morgen een vers boeket bezorgen.")
-            msg_bloem = st.text_area("Welke bloemen of welk kaartje?", placeholder="Bijv: Rode rozen en een kaartje met 'Liefs van ons'...", key="bloem_msg")
+            msg_bloem = st.text_area("Welke bloemen of welk kaartje?", placeholder="Liefs van ons...", key="bloem_msg")
             if st.button("BESTEL BLOEMEN"):
                 log_bestelling(fid, "Bloemen", "€20", msg_bloem)
-                st.success("Aanvraag ontvangen! Wij nemen contact op.")
+                st.success("Besteld!")
+                
     with col_ver2:
         with st.container(border=True):
-            st.write("### 📸 Fysieke Foto")
-            st.write("Stuur de laatste foto als echte kaart.")
+            st.write("### 📸 Fysieke Foto (€3,50)")
+            # FOTO SELECTIE OPTIE
+            foto_opties = [f"{i+1}. {item['naam']} ({item['datum']})" for i, item in enumerate(full_album)]
+            gekozen_foto = st.selectbox("Welke foto moet op de kaart?", options=foto_opties) if foto_opties else None
+            msg_foto = st.text_area("Berichtje voor achterop?", placeholder="Lieve oma...", key="foto_msg")
             if st.button("STUUR FOTO PER POST"):
-                log_bestelling(fid, "Fysieke Kaart", "N.v.t.", "Laatste foto")
-                st.success("Aanvraag ontvangen! We maken de kaart klaar.")
+                if gekozen_foto:
+                    log_bestelling(fid, "Fysieke Kaart", "€3,50", f"Foto: {gekozen_foto} | Tekst: {msg_foto}")
+                    st.success("Besteld!")
+                else:
+                    st.error("Er zijn geen foto's om te sturen.")
 
     st.markdown("---")
     st.subheader("Beheer Archief")
@@ -203,7 +193,7 @@ with tab3:
         if cb.button("🗑️ Wis", key=f"del_{idx}"):
             full_album.pop(idx); save_data(fid, full_album); st.rerun()
 
-    # --- SYSTEEM SECTIE (Zichtbaar voor Admin of via Toggle) ---
+    # --- SYSTEEM SECTIE ---
     st.markdown("---")
     st.subheader("📑 Systeem Overzicht")
     show_logs = st.toggle("Toon binnengekomen bestellingen")
@@ -213,8 +203,6 @@ with tab3:
             st.dataframe(df, use_container_width=True)
             with open("bestellingen.csv", "rb") as file:
                 st.download_button("📥 DOWNLOAD BESTELLINGEN", data=file, file_name="bestellingen.csv", mime="text/csv")
-        else:
-            st.info("Nog geen bestellingen gevonden.")
 
     st.markdown("---")
     if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
