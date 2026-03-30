@@ -205,16 +205,17 @@ with tab3:
         if cb.button("🗑️ Wis", key=f"del_{idx}"):
             full_album.pop(idx); save_data(fid, full_album); st.rerun()
 
-    st.markdown("---")
-    
-    st.subheader("📑 Systeem Overzicht")
-    show_logs = st.toggle("Toon binnengekomen bestellingen")
-    if show_logs or fid == "ADMIN":
+    # --- BEVEILIGD SYSTEEM OVERZICHT (ALLEEN VOOR ADMIN) ---
+    if fid == "ADMIN":
+        st.markdown("---")
+        st.subheader("📑 Admin: Systeem Overzicht")
         if os.path.exists("bestellingen.csv"):
             df = pd.read_csv("bestellingen.csv")
             st.dataframe(df, use_container_width=True)
             with open("bestellingen.csv", "rb") as file:
                 st.download_button("📥 DOWNLOAD CSV", data=file, file_name="bestellingen.csv", mime="text/csv")
+        else:
+            st.info("Nog geen bestellingen gevonden.")
 
     st.markdown("---")
     if st.button("🚪 Uitloggen", use_container_width=True):
