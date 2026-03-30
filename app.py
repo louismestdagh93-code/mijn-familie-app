@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import csv
+import pandas as pd
 from datetime import datetime, timedelta
 
 # 1. CONFIG
@@ -35,11 +36,11 @@ def log_bestelling(family_id, product, prijs, opmerking=""):
     bestand = "bestellingen.csv"
     nu_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     bestaat_al = os.path.exists(bestand)
-    with open(bestand, mode='a', newline='') as f:
+    with open(bestand, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not bestaat_al:
             writer.writerow(["Datum", "Familie", "Product", "Prijs", "Opmerking"])
-        writer.writerow([nu_str, family_id, product, prijs, opmerking])
+        writer.writerow([nu_str, family_id, product, prijs, opmerking.replace('\n', ' ')])
 
 # 3. LOGIN LOGICA (MET FOTO ACHTERGROND)
 if 'logged_in' not in st.session_state:
@@ -83,6 +84,10 @@ if not st.session_state.logged_in:
                     st.session_state.logged_in, st.session_state.family_id = True, fid
                     st.query_params["family"] = fid
                     st.rerun()
+                # ADMIN LOGIN MOGELIJKHEID
+                elif fid.lower() == "admin" and pw == "ADMIN2026":
+                    st.session_state.logged_in, st.session_state.family_id = True, "ADMIN"
+                    st.rerun()
                 else: st.error("Naam of code is onjuist.")
     st.stop()
 
@@ -115,6 +120,7 @@ fid = st.session_state.family_id
 full_album = load_data(fid)
 nu = datetime.now()
 
+# Dashboard Tabs
 tab1, tab2, tab3 = st.tabs(["👵 OMA", "📤 FAMILIE", "⚙️ BEHEER"])
 
 with tab1:
@@ -196,6 +202,19 @@ with tab3:
         ca.write(f"🖼️ {item['naam']} ({item['views']} views)")
         if cb.button("🗑️ Wis", key=f"del_{idx}"):
             full_album.pop(idx); save_data(fid, full_album); st.rerun()
+
+    # --- SYSTEEM SECTIE (Zichtbaar voor Admin of via Toggle) ---
+    st.markdown("---")
+    st.subheader("📑 Systeem Overzicht")
+    show_logs = st.toggle("Toon binnengekomen bestellingen")
+    if show_logs or fid == "ADMIN":
+        if os.path.exists("bestellingen.csv"):
+            df = pd.read_csv("bestellingen.csv")
+            st.dataframe(df, use_container_width=True)
+            with open("bestellingen.csv", "rb") as file:
+                st.download_button("📥 DOWNLOAD BESTELLINGEN", data=file, file_name="bestellingen.csv", mime="text/csv")
+        else:
+            st.info("Nog geen bestellingen gevonden.")
 
     st.markdown("---")
     if st.button("🚪 Uitloggen", key="logout_final", use_container_width=True):
